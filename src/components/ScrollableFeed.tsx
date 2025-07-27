@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { ShoppingCartIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { DiscogsRelease } from '@/utils/discogs';
+import RecordCard from './RecordCard';
 
 interface ScrollableFeedProps {
   releases: DiscogsRelease[];
@@ -333,270 +334,419 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
   }
 
   return (
-    <div 
-      ref={containerRef}
-      className="h-screen w-full bg-black text-white overflow-hidden relative"
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-    >
-      {/* Background Image */}
+    <>
+      {/* Mobile Layout */}
       <div 
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{
-          backgroundImage: currentRelease.thumb ? `url(${currentRelease.thumb})` : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
-          filter: 'blur(20px) brightness(0.3)',
-          transform: 'scale(1.1)'
-        }}
-      />
-      
-      {/* Main Content */}
-      <div className="relative z-10 h-full flex flex-col">
-        {/* Header */}
-        <div className="p-6 flex justify-between items-start">
-          <div className="flex items-center gap-4">
-            {/* Hamburger Menu Button */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
-            >
-              <div className="w-5 h-5 flex flex-col justify-center gap-1">
-                <div className="w-full h-0.5 bg-white"></div>
-                <div className="w-full h-0.5 bg-white"></div>
-                <div className="w-full h-0.5 bg-white"></div>
-              </div>
-            </button>
-            
-            {storeInfo && (
-              <span className="bg-white/20 px-3 py-1 rounded-full text-sm opacity-75">
-                {storeInfo.username}
-              </span>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-4">
-            {/* Cart Icon */}
-            <div className="relative">
-              <button className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
-                <ShoppingCartIcon className="w-5 h-5 text-white" />
-              </button>
-              {cartCount > 0 && (
-                <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
-                  {cartCount > 99 ? '99+' : cartCount}
+        ref={containerRef}
+        className="md:hidden h-screen w-full bg-black text-white overflow-hidden relative"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: currentRelease.thumb ? `url(${currentRelease.thumb})` : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+            filter: 'blur(20px) brightness(0.3)',
+            transform: 'scale(1.1)'
+          }}
+        />
+        
+        {/* Main Content */}
+        <div className="relative z-10 h-full flex flex-col">
+          {/* Header */}
+          <div className="p-6 flex justify-between items-start">
+            <div className="flex items-center gap-4">
+              {/* Hamburger Menu Button */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+              >
+                <div className="w-5 h-5 flex flex-col justify-center gap-1">
+                  <div className="w-full h-0.5 bg-white"></div>
+                  <div className="w-full h-0.5 bg-white"></div>
+                  <div className="w-full h-0.5 bg-white"></div>
                 </div>
+              </button>
+              
+              {storeInfo && (
+                <span className="bg-white/20 px-3 py-1 rounded-full text-sm opacity-75">
+                  {storeInfo.username}
+                </span>
               )}
             </div>
             
-            {/* Track Counter */}
-            <div className="text-sm opacity-75">
-              {currentReleaseIndex + 1} / {releasesWithTracks.length}
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content Area */}
-        <div className="flex-1 flex items-center justify-center p-6 overflow-hidden">
-          <div className={`max-w-sm w-full text-center transition-all duration-500 ease-out ${
-            slideDirection === 'up' ? 'animate-slide-up' : 
-            slideDirection === 'down' ? 'animate-slide-down' :
-            ''
-          }`}>
-            {/* Album Art */}
-            <div className="mb-6 relative">
-              {currentRelease.thumb ? (
-                <img
-                  src={currentRelease.thumb}
-                  alt={`${currentRelease.artist} - ${currentRelease.title}`}
-                  className="w-80 h-80 mx-auto rounded-lg shadow-2xl object-cover"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    const placeholder = target.nextElementSibling as HTMLElement;
-                    if (placeholder) placeholder.style.display = 'flex';
-                  }}
-                />
-              ) : null}
-              <div 
-                className={`w-80 h-80 mx-auto rounded-lg shadow-2xl bg-gray-600 flex items-center justify-center ${
-                  currentRelease.thumb ? 'hidden' : 'flex'
-                }`}
-              >
-                <div className="text-center text-gray-300">
-                  <div className="text-4xl mb-2">🎵</div>
-                  <div className="text-sm">Album Cover</div>
-                  <div className="text-xs opacity-75">Preview Not Available</div>
-                </div>
+            <div className="flex items-center gap-4">
+              {/* Cart Icon */}
+              <div className="relative">
+                <button className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
+                  <ShoppingCartIcon className="w-5 h-5 text-white" />
+                </button>
+                {cartCount > 0 && (
+                  <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                    {cartCount > 99 ? '99+' : cartCount}
+                  </div>
+                )}
               </div>
               
-              {/* Track navigation dots - overlaid on album art */}
+              {/* Track Counter */}
+              <div className="text-sm opacity-75">
+                {currentReleaseIndex + 1} / {releasesWithTracks.length}
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1 flex items-center justify-center p-6 overflow-hidden">
+            <div className={`max-w-sm w-full text-center transition-all duration-500 ease-out ${
+              slideDirection === 'up' ? 'animate-slide-up' : 
+              slideDirection === 'down' ? 'animate-slide-down' :
+              ''
+            }`}>
+              {/* Album Art */}
+              <div className="mb-6 relative">
+                {currentRelease.thumb ? (
+                  <img
+                    src={currentRelease.thumb}
+                    alt={`${currentRelease.artist} - ${currentRelease.title}`}
+                    className="w-80 h-80 mx-auto rounded-lg shadow-2xl object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      const placeholder = target.nextElementSibling as HTMLElement;
+                      if (placeholder) placeholder.style.display = 'flex';
+                    }}
+                  />
+                ) : null}
+                <div 
+                  className={`w-80 h-80 mx-auto rounded-lg shadow-2xl bg-gray-600 flex items-center justify-center ${
+                    currentRelease.thumb ? 'hidden' : 'flex'
+                  }`}
+                >
+                  <div className="text-center text-gray-300">
+                    <div className="text-4xl mb-2">🎵</div>
+                    <div className="text-sm">Album Cover</div>
+                    <div className="text-xs opacity-75">Preview Not Available</div>
+                  </div>
+                </div>
+                
+                {/* Track navigation dots - overlaid on album art */}
+                {currentRelease.tracks && currentRelease.tracks.length > 0 && (
+                  <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2">
+                    <div className="bg-black bg-opacity-10 rounded-full px-3 py-2 backdrop-blur-sm">
+                      <div className="flex justify-center gap-2">
+                        {currentRelease.tracks.map((_, index) => (
+                          <button
+                            key={index}
+                            onClick={() => !isScrolling && setCurrentTrackIndex(index)}
+                            className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                              index === currentTrackIndex 
+                                ? 'bg-white scale-125' 
+                                : 'bg-white/60 hover:bg-white/80'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Track Info */}
               {currentRelease.tracks && currentRelease.tracks.length > 0 && (
-                <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2">
-                  <div className="bg-black bg-opacity-10 rounded-full px-3 py-2 backdrop-blur-sm">
-                    <div className="flex justify-center gap-2">
-                      {currentRelease.tracks.map((_, index) => (
-                        <button
-                          key={index}
-                          onClick={() => !isScrolling && setCurrentTrackIndex(index)}
-                          className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                            index === currentTrackIndex 
-                              ? 'bg-white scale-125' 
-                              : 'bg-white/60 hover:bg-white/80'
-                          }`}
-                        />
-                      ))}
+                <div className="mb-4 overflow-hidden">
+                  <div className={`text-lg text-gray-400 mb-3 flex justify-between items-center w-80 mx-auto px-4 transition-all duration-300 ease-out ${
+                    slideDirection === 'left' ? 'animate-slide-left' :
+                    slideDirection === 'right' ? 'animate-slide-right' :
+                    ''
+                  }`}>
+                    <span className="text-left font-semibold text-white truncate pr-4 flex-1 min-w-0">{currentRelease.tracks[currentTrackIndex].title}</span>
+                    <div className="text-right flex-shrink-0 text-sm">
+                      <span>{currentRelease.tracks[currentTrackIndex].position}</span>
+                      <span className="mx-1">•</span>
+                      <span>{currentRelease.tracks[currentTrackIndex].duration}</span>
                     </div>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Track Info */}
-            {currentRelease.tracks && currentRelease.tracks.length > 0 && (
-              <div className="mb-4 overflow-hidden">
-                <div className={`text-lg text-gray-400 mb-3 flex justify-between items-center w-80 mx-auto px-4 transition-all duration-300 ease-out ${
-                  slideDirection === 'left' ? 'animate-slide-left' :
-                  slideDirection === 'right' ? 'animate-slide-right' :
-                  ''
-                }`}>
-                  <span className="text-left font-semibold text-white truncate pr-4 flex-1 min-w-0">{currentRelease.tracks[currentTrackIndex].title}</span>
-                  <div className="text-right flex-shrink-0 text-sm">
-                    <span>{currentRelease.tracks[currentTrackIndex].position}</span>
-                    <span className="mx-1">•</span>
-                    <span>{currentRelease.tracks[currentTrackIndex].duration}</span>
-                  </div>
+              {/* Release Info */}
+              <div className="mb-6">
+                <h1 className="text-xl text-gray-300 mb-3">
+                  {currentRelease.artist} • {currentRelease.title}
+                </h1>
+                <div className="text-sm text-gray-400 space-x-4 mb-2">
+                  <span>{currentRelease.label}</span>
+                  <span>•</span>
+                  <span>{currentRelease.year}</span>
+                  {currentRelease.price && (
+                    <>
+                      <span>•</span>
+                      <span className="text-green-400 font-semibold">{currentRelease.price}</span>
+                    </>
+                  )}
                 </div>
-              </div>
-            )}
-
-            {/* Release Info */}
-            <div className="mb-6">
-              <h1 className="text-xl text-gray-300 mb-3">
-                {currentRelease.artist} • {currentRelease.title}
-              </h1>
-              <div className="text-sm text-gray-400 space-x-4 mb-2">
-                <span>{currentRelease.label}</span>
-                <span>•</span>
-                <span>{currentRelease.year}</span>
-                {currentRelease.price && (
-                  <>
-                    <span>•</span>
-                    <span className="text-green-400 font-semibold">{currentRelease.price}</span>
-                  </>
+                {currentRelease.genre && currentRelease.genre.length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-1">
+                    {currentRelease.genre.slice(0, 3).map((genre, index) => (
+                      <span
+                        key={index}
+                        className="bg-white/10 text-gray-300 px-2 py-1 rounded-full text-xs"
+                      >
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
                 )}
               </div>
-              {currentRelease.genre && currentRelease.genre.length > 0 && (
-                <div className="flex flex-wrap justify-center gap-1">
-                  {currentRelease.genre.slice(0, 3).map((genre, index) => (
-                    <span
-                      key={index}
-                      className="bg-white/10 text-gray-300 px-2 py-1 rounded-full text-xs"
-                    >
-                      {genre}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
 
-            {/* Audio Player Placeholder */}
-            <div className="mb-2">
-              <div className={`bg-white/10 rounded-lg p-4 backdrop-blur-sm transition-opacity duration-300 ease-out ${
-                slideDirection === 'left' || slideDirection === 'right' ? 'opacity-50' : 'opacity-100'
-              }`}>
-                <div className="flex items-center gap-4">
-                  <button className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                    ▶
-                  </button>
-                  <div className="flex-1 h-1 bg-white/20 rounded-full">
-                    <div className="h-full w-1/3 bg-white rounded-full"></div>
+              {/* Audio Player Placeholder */}
+              <div className="mb-2">
+                <div className={`bg-white/10 rounded-lg p-4 backdrop-blur-sm transition-opacity duration-300 ease-out ${
+                  slideDirection === 'left' || slideDirection === 'right' ? 'opacity-50' : 'opacity-100'
+                }`}>
+                  <div className="flex items-center gap-4">
+                    <button className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
+                      ▶
+                    </button>
+                    <div className="flex-1 h-1 bg-white/20 rounded-full">
+                      <div className="h-full w-1/3 bg-white rounded-full"></div>
+                    </div>
+                    <span className="text-sm text-gray-300">
+                      {currentRelease.tracks && currentRelease.tracks[currentTrackIndex] 
+                        ? currentRelease.tracks[currentTrackIndex].duration 
+                        : "3:45"}
+                    </span>
                   </div>
-                  <span className="text-sm text-gray-300">
-                    {currentRelease.tracks && currentRelease.tracks[currentTrackIndex] 
-                      ? currentRelease.tracks[currentTrackIndex].duration 
-                      : "3:45"}
-                  </span>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom Actions */}
+          <div className="px-6 pb-6">
+            <div className="space-y-3">
+              {/* First Row: Wishlist and Add to Crate */}
+              <div className="flex gap-4">
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch('/api/wishlist', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          releaseId: currentRelease.id,
+                          userId: 'temp_user', // TODO: Get from auth context
+                        }),
+                      });
+
+                      if (response.ok) {
+                        const result = await response.json();
+                        alert(`✓ ${result.message}`);
+                      } else {
+                        alert('Failed to add to wishlist');
+                      }
+                    } catch (error) {
+                      console.error('Wishlist error:', error);
+                      alert('Error adding to wishlist');
+                    }
+                  }}
+                  className="flex-1 bg-white/20 hover:bg-white/30 rounded-lg py-3 px-6 font-semibold transition-colors flex items-center justify-center gap-2"
+                  title="Add to Wishlist"
+                >
+                  <EyeIcon className="w-5 h-5 text-white" />
+                  <span className="text-white">Wishlist</span>
+                </button>
+                <button 
+                  onClick={() => setCartCount(prev => prev + 1)}
+                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                >
+                  Add to Crate
+                </button>
+              </div>
+              
+              {/* Second Row: Buy Now */}
+              <div>
+                <a
+                  href={`https://www.discogs.com${currentRelease.uri}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors text-center"
+                >
+                  Buy Now
+                </a>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Bottom Actions */}
-        <div className="px-6 pb-6">
-          <div className="space-y-3">
-            {/* First Row: Wishlist and Add to Crate */}
-            <div className="flex gap-4">
+        {/* Filter Panel - Full width overlay */}
+        <div 
+          className={`fixed inset-0 bg-black/95 backdrop-blur-md transform transition-transform duration-300 ease-in-out z-50 ${
+            showFilters ? 'translate-x-0' : '-translate-x-full'
+          }`}
+          onClick={() => setShowFilters(false)}
+        >
+          <div className="p-6 h-full overflow-y-auto max-w-md mx-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-white">Filters</h2>
               <button
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/wishlist', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        releaseId: currentRelease.id,
-                        userId: 'temp_user', // TODO: Get from auth context
-                      }),
-                    });
-
-                    if (response.ok) {
-                      const result = await response.json();
-                      alert(`✓ ${result.message}`);
-                    } else {
-                      alert('Failed to add to wishlist');
-                    }
-                  } catch (error) {
-                    console.error('Wishlist error:', error);
-                    alert('Error adding to wishlist');
-                  }
-                }}
-                className="flex-1 bg-white/20 hover:bg-white/30 rounded-lg py-3 px-6 font-semibold transition-colors flex items-center justify-center gap-2"
-                title="Add to Wishlist"
+                onClick={() => setShowFilters(false)}
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors text-white text-lg"
               >
-                <EyeIcon className="w-5 h-5 text-white" />
-                <span className="text-white">Wishlist</span>
-              </button>
-              <button 
-                onClick={() => setCartCount(prev => prev + 1)}
-                className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-              >
-                Add to Crate
+                ✕
               </button>
             </div>
-            
-            {/* Second Row: Buy Now */}
-            <div>
-              <a
-                href={`https://www.discogs.com${currentRelease.uri}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors text-center"
+
+            <div className="space-y-4">
+              {/* Go Back to Stores */}
+              <div className="pb-4 border-b border-white/20">
+                <button
+                  onClick={() => window.location.href = '/'}
+                  className="w-full flex items-center gap-3 px-4 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white font-medium"
+                >
+                  <span className="text-xl">←</span>
+                  <span>All Stores</span>
+                </button>
+              </div>
+
+              {/* Search */}
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Search
+                </label>
+                <input
+                  type="text"
+                  placeholder="Artist, title, label, or genre..."
+                  value={filters.searchQuery}
+                  onChange={(e) => setFilters({...filters, searchQuery: e.target.value})}
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 focus:border-transparent"
+                />
+              </div>
+
+              {/* Price Range */}
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Price Range
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    value={filters.minPrice}
+                    onChange={(e) => setFilters({...filters, minPrice: e.target.value})}
+                    className="flex-1 min-w-0 px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 focus:border-transparent"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    value={filters.maxPrice}
+                    onChange={(e) => setFilters({...filters, maxPrice: e.target.value})}
+                    className="flex-1 min-w-0 px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 focus:border-transparent"
+                  />
+                </div>
+              </div>
+
+              {/* Format */}
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Format
+                </label>
+                <select
+                  value={filters.format}
+                  onChange={(e) => setFilters({...filters, format: e.target.value})}
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:ring-2 focus:ring-white/30 focus:border-transparent"
+                >
+                  <option value="">All Formats</option>
+                  <option value="vinyl">Vinyl</option>
+                  <option value="cd">CD</option>
+                  <option value="cassette">Cassette</option>
+                </select>
+              </div>
+
+              {/* Condition */}
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Condition
+                </label>
+                <select
+                  value={filters.condition}
+                  onChange={(e) => setFilters({...filters, condition: e.target.value})}
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:ring-2 focus:ring-white/30 focus:border-transparent"
+                >
+                  <option value="">All Conditions</option>
+                  <option value="mint">Mint (M)</option>
+                  <option value="near mint">Near Mint (NM)</option>
+                  <option value="very good plus">Very Good Plus (VG+)</option>
+                  <option value="very good">Very Good (VG)</option>
+                </select>
+              </div>
+
+              {/* Year */}
+              <div>
+                <label className="block text-sm font-medium text-white/80 mb-2">
+                  Year
+                </label>
+                <input
+                  type="number"
+                  placeholder="e.g. 1990"
+                  value={filters.year}
+                  onChange={(e) => setFilters({...filters, year: e.target.value})}
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:ring-2 focus:ring-white/30 focus:border-transparent"
+                />
+              </div>
+
+              {/* Clear Filters */}
+              <button
+                onClick={() => {
+                  setFilters({
+                    searchQuery: '',
+                    minPrice: '',
+                    maxPrice: '',
+                    format: '',
+                    condition: '',
+                    genre: '',
+                    year: ''
+                  });
+                }}
+                className="w-full mt-6 px-4 py-2 bg-white/20 text-white rounded-md hover:bg-white/30 transition-colors"
               >
-                Buy Now
-              </a>
+                Clear All Filters
+              </button>
+
+              {/* Results Count */}
+              <div className="text-center text-white/60 text-sm mt-4">
+                Showing {releasesWithTracks.length} of {releases.length} releases
+              </div>
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* Filter Panel - Full width overlay */}
-      <div 
-        className={`fixed inset-0 bg-black/95 backdrop-blur-md transform transition-transform duration-300 ease-in-out z-50 ${
-          showFilters ? 'translate-x-0' : '-translate-x-full'
-        }`}
-        onClick={() => setShowFilters(false)}
-      >
-        <div className="p-6 h-full overflow-y-auto max-w-md mx-auto" onClick={(e) => e.stopPropagation()}>
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-white">Filters</h2>
-            <button
-              onClick={() => setShowFilters(false)}
-              className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors text-white text-lg"
-            >
-              ✕
-            </button>
+      {/* Desktop 3-Column Layout */}
+      <div className="hidden md:flex h-screen bg-black">
+        {/* Background Image for Desktop */}
+        <div 
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={{
+            backgroundImage: currentRelease.thumb ? `url(${currentRelease.thumb})` : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+            filter: 'blur(20px) brightness(0.3)',
+            transform: 'scale(1.1)'
+          }}
+        />
+        
+        {/* Left Column: Search Menu */}
+        <div className="w-80 bg-black/80 backdrop-blur-md shadow-lg p-6 overflow-y-auto relative z-10">
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-white mb-2">Filters</h2>
+            {storeInfo && (
+              <span className="bg-white/20 px-3 py-1 rounded-full text-sm text-white/80">
+                {storeInfo.username}
+              </span>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -721,8 +871,142 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
             </div>
           </div>
         </div>
-      </div>
 
-    </div>
+        {/* Middle Column: Record Card */}
+        <div className="flex-1 flex items-start justify-center p-8 relative z-10">
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center">
+              <div className="text-center mb-2">
+                <div className="text-xs text-white/60">
+                  {currentReleaseIndex + 1} / {releasesWithTracks.length}
+                </div>
+              </div>
+              <RecordCard 
+                release={currentRelease} 
+                viewMode="grid"
+                currentTrack={currentRelease.tracks && currentRelease.tracks.length > 0 ? currentRelease.tracks[currentTrackIndex] : undefined}
+                showTrackInfo={true}
+              />
+            </div>
+            
+            {/* Navigation Chevrons */}
+            <div className="flex flex-col gap-4 ml-4">
+              <button
+                onClick={() => handleScroll('up')}
+                disabled={currentReleaseIndex === 0 || isScrolling}
+                className="p-3 bg-white/20 hover:bg-white/30 rounded-full text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Previous Record"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                </svg>
+              </button>
+              <button
+                onClick={() => handleScroll('down')}
+                disabled={currentReleaseIndex === releasesWithTracks.length - 1 || isScrolling}
+                className="p-3 bg-white/20 hover:bg-white/30 rounded-full text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Next Record"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Actions */}
+        <div className="w-80 bg-black/80 backdrop-blur-md shadow-lg p-6 relative z-10">
+          <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-white">Actions</h2>
+            
+            {/* Cart status */}
+            <div className="flex items-center justify-between">
+              <span className="text-white/80">Items in crate:</span>
+              <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-sm font-medium">
+                {cartCount}
+              </span>
+            </div>
+
+            {/* Action buttons */}
+            <div className="space-y-3">
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/wishlist', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        releaseId: currentRelease.id,
+                        userId: 'temp_user', // TODO: Get from auth context
+                      }),
+                    });
+
+                    if (response.ok) {
+                      const result = await response.json();
+                      alert(`✓ ${result.message}`);
+                    } else {
+                      alert('Failed to add to wishlist');
+                    }
+                  } catch (error) {
+                    console.error('Wishlist error:', error);
+                    alert('Error adding to wishlist');
+                  }
+                }}
+                className="w-full bg-white/20 hover:bg-white/30 rounded-lg py-3 px-6 font-semibold transition-colors flex items-center justify-center gap-2 text-white"
+                title="Add to Wishlist"
+              >
+                <EyeIcon className="w-5 h-5" />
+                <span>Add to Wishlist</span>
+              </button>
+              
+              <button 
+                onClick={() => setCartCount(prev => prev + 1)}
+                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+              >
+                <span className="text-lg">📦</span>
+                <span>Add to Crate</span>
+              </button>
+              
+              <a
+                href={`https://www.discogs.com${currentRelease.uri}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors text-center"
+              >
+                Buy Now on Discogs
+              </a>
+            </div>
+
+            {/* Track info */}
+            {currentRelease.tracks && currentRelease.tracks.length > 0 && (
+              <div className="border-t border-white/20 pt-6">
+                <h3 className="text-lg font-semibold text-white mb-3">Track List</h3>
+                <div className="space-y-2">
+                  {currentRelease.tracks.map((track, index) => (
+                    <div 
+                      key={index}
+                      className={`p-2 rounded cursor-pointer transition-colors ${
+                        index === currentTrackIndex 
+                          ? 'bg-white/20 text-white' 
+                          : 'hover:bg-white/10 text-white/80'
+                      }`}
+                      onClick={() => setCurrentTrackIndex(index)}
+                    >
+                      <div className="flex justify-between items-center text-sm">
+                        <span className="font-medium">{track.title}</span>
+                        <span className="text-white/60">{track.duration}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

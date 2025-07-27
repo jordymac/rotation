@@ -27,7 +27,10 @@ export default function Home() {
             >
               Join the Beta
             </button>
-            <button className="border-2 border-gray-900 text-gray-900 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-900 hover:text-white transition-colors">
+            <button
+              onClick={() => router.push('/feed')}
+              className="border-2 border-gray-900 text-gray-900 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-900 hover:text-white transition-colors"
+            >
               See It in Action
             </button>
           </div>

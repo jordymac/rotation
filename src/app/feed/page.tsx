@@ -56,25 +56,20 @@ function FeedContent() {
         setReleases(data.results || []);
         setStoreInfo(data.store);
       } else {
-        // Load mixed feed from all stores (future feature)
-        // For now, just get the first store
-        const storesResponse = await fetch('/api/admin/stores');
-        if (storesResponse.ok) {
-          const storesData = await storesResponse.json();
-          if (storesData.stores && storesData.stores.length > 0) {
-            const firstStore = storesData.stores[0];
-            const inventoryResponse = await fetch(`/api/stores/${firstStore.id}/inventory`);
-            if (inventoryResponse.ok) {
-              const inventoryData: StoreInventoryResponse = await inventoryResponse.json();
-              console.log('Feed data loaded (fallback):', {
-                resultsLength: inventoryData.results?.length,
-                results: inventoryData.results,
-                store: inventoryData.store
-              });
-              setReleases(inventoryData.results || []);
-              setStoreInfo(inventoryData.store);
-            }
-          }
+        // Use default test store to show demo content
+        const testStoreId = 'demo-store';
+        const inventoryResponse = await fetch(`/api/stores/${testStoreId}/inventory`);
+        if (inventoryResponse.ok) {
+          const inventoryData: StoreInventoryResponse = await inventoryResponse.json();
+          console.log('Feed data loaded (demo store):', {
+            resultsLength: inventoryData.results?.length,
+            results: inventoryData.results,
+            store: inventoryData.store
+          });
+          setReleases(inventoryData.results || []);
+          setStoreInfo(inventoryData.store);
+        } else {
+          throw new Error('Failed to load demo store inventory');
         }
       }
     } catch (err) {

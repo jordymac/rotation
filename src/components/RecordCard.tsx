@@ -6,9 +6,15 @@ interface RecordCardProps {
   viewMode?: 'grid' | 'list';
   isSellerMode?: boolean;
   onManageItem?: (release: DiscogsRelease) => void;
+  currentTrack?: {
+    title: string;
+    duration: string;
+    position: string;
+  };
+  showTrackInfo?: boolean;
 }
 
-export default function RecordCard({ release, viewMode = 'grid', isSellerMode = false, onManageItem }: RecordCardProps) {
+export default function RecordCard({ release, viewMode = 'grid', isSellerMode = false, onManageItem, currentTrack, showTrackInfo = false }: RecordCardProps) {
   if (viewMode === 'list') {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
@@ -162,13 +168,13 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
   }
   
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="aspect-square relative">
+    <div className="w-80 h-[600px] mx-auto flex flex-col">
+      <div className="aspect-square relative flex-shrink-0 mb-4">
         {release.thumb ? (
           <img
             src={release.thumb}
             alt={`${release.artist} - ${release.title}`}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover rounded-lg shadow-2xl"
             onError={(e) => {
               const target = e.target as HTMLImageElement;
               target.style.display = 'none';
@@ -178,7 +184,7 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
           />
         ) : null}
         <div 
-          className={`w-full h-full bg-gray-400 flex items-center justify-center ${
+          className={`w-full h-full bg-gray-400 flex items-center justify-center rounded-lg shadow-2xl ${
             release.thumb ? 'hidden' : 'flex'
           }`}
         >
@@ -189,81 +195,105 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
         </div>
       </div>
       
-      <div className="p-4">
-        <h3 className="font-semibold text-lg text-gray-900 mb-1">
-          {release.title}
-        </h3>
+      <div className="flex-1 flex flex-col px-2">
+        {/* 1. Track Name | Track # + Length - only show on desktop when showTrackInfo is true */}
+        {showTrackInfo && currentTrack ? (
+          <div className="mb-3">
+            <div className="flex justify-between items-center">
+              <div className="text-base font-semibold text-white truncate flex-1 mr-2">
+                {currentTrack.title}
+              </div>
+              <div className="text-sm text-white/80 flex-shrink-0">
+                {currentTrack.position} • {currentTrack.duration}
+              </div>
+            </div>
+          </div>
+        ) : null}
         
-        <p className="text-gray-700 mb-2">
+        {/* 2. Artist */}
+        <p className="text-lg font-medium text-white/90 mb-2 truncate">
           {release.artist}
         </p>
         
-        <div className="flex justify-between items-center text-sm text-gray-500 mb-3">
-          <span>{release.label}</span>
-          <span>{release.year}</span>
+        {/* 3. Album */}
+        <h3 className="font-semibold text-xl text-white mb-3 overflow-hidden" style={{
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          lineHeight: '1.25rem',
+          maxHeight: '2.5rem'
+        }}>
+          {release.title}
+        </h3>
+        
+        {/* 4. Label | Year */}
+        <div className="flex justify-between items-center text-sm text-white/70 mb-3">
+          <span className="truncate flex-1 mr-2">{release.label}</span>
+          <span className="flex-shrink-0">{release.year}</span>
         </div>
         
-        {release.genre && release.genre.length > 0 && (
-          <div className="flex flex-wrap gap-1 mb-3">
-            {release.genre.slice(0, 3).map((genre, index) => (
-              <span
-                key={index}
-                className="bg-gray-100 text-gray-700 px-2 py-1 rounded-full text-xs"
-              >
-                {genre}
-              </span>
-            ))}
-          </div>
-        )}
-        
-        {release.price && (
-          <div className="mb-3">
-            <span className="text-lg font-bold text-green-600">
-              {release.price}
-            </span>
-            {release.condition && (
-              <span className="text-sm text-gray-500 ml-2">
-                {release.condition}
-                {release.sleeve_condition && ` / ${release.sleeve_condition}`}
-              </span>
-            )}
-          </div>
-        )}
-        
-        <div className="flex gap-2">
-          {isSellerMode ? (
-            <>
-              <button
-                onClick={() => onManageItem?.(release)}
-                className="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded hover:bg-blue-700 transition-colors text-sm"
-              >
-                Manage Item
-              </button>
-              <div className="flex items-center justify-center px-2">
-                <span className="w-2 h-2 bg-green-500 rounded-full" title="Active"></span>
-              </div>
-            </>
+        {/* 5. Genres */}
+        <div className="h-8 mb-4 flex items-start">
+          {release.genre && release.genre.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {release.genre.slice(0, 3).map((genre, index) => (
+                <span
+                  key={index}
+                  className="bg-white/20 text-white px-2 py-1 rounded-full text-xs"
+                >
+                  {genre}
+                </span>
+              ))}
+            </div>
           ) : (
-            <>
-              <button
-                onClick={() => {
-                  // TODO: Add to user's Discogs wishlist
-                  alert('Added to wishlist! (Will link to Discogs when user auth is implemented)');
-                }}
-                className="p-2 bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-600 rounded transition-colors"
-                title="Add to Wishlist"
-              >
-                <EyeIcon className="w-5 h-5" />
+            <div></div>
+          )}
+        </div>
+        
+        {/* 6. Audio Play and Timeline Scrub */}
+        <div className="mb-4">
+          <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <button className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors">
+                <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z"/>
+                </svg>
               </button>
-              <a
-                href={`https://www.discogs.com${release.uri}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded hover:bg-blue-700 transition-colors text-sm"
-              >
-                Buy on Discogs
-              </a>
-            </>
+              <div className="flex-1">
+                <div className="flex justify-between text-xs text-white/60 mb-1">
+                  <span>0:00</span>
+                  <span>{currentTrack?.duration || "3:45"}</span>
+                </div>
+                <div className="w-full h-2 bg-white/20 rounded-full cursor-pointer">
+                  <div className="h-full w-1/3 bg-white rounded-full"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Price and Condition - moved to bottom */}
+        <div className="mt-auto">
+          {release.price ? (
+            <div>
+              <span className="text-lg font-bold text-green-400">
+                {release.price}
+              </span>
+              {release.condition && (
+                <div className="text-sm text-white/60 mt-1 overflow-hidden" style={{
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  lineHeight: '1.25rem',
+                  maxHeight: '2.5rem'
+                }}>
+                  {release.condition}
+                  {release.sleeve_condition && ` / ${release.sleeve_condition}`}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="h-6"></div>
           )}
         </div>
       </div>
