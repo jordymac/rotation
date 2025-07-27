@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import ScrollableFeed from '@/components/ScrollableFeed';
 import { DiscogsRelease } from '@/utils/discogs';
@@ -21,7 +21,7 @@ interface StoreInventoryResponse {
   store: Store;
 }
 
-export default function FeedPage() {
+function FeedContent() {
   const searchParams = useSearchParams();
   const storeId = searchParams.get('store');
   
@@ -132,4 +132,19 @@ export default function FeedPage() {
   }
 
   return <ScrollableFeed releases={releases} storeInfo={storeInfo || undefined} />;
+}
+
+export default function FeedPage() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen bg-black flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mb-4"></div>
+          <p className="text-lg">Loading your feed...</p>
+        </div>
+      </div>
+    }>
+      <FeedContent />
+    </Suspense>
+  );
 }
