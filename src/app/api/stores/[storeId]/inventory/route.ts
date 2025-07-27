@@ -1,38 +1,31 @@
-import { NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { adminStores } from '@/lib/storage';
 
 const DISCOGS_API_BASE = 'https://api.discogs.com';
 
-export async function GET() {
-  const { userId } = await auth();
-  
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // Get the first admin store for testing
-  const stores = adminStores.getAll();
-  
-  if (stores.length === 0) {
-    return NextResponse.json({ 
-      error: 'No stores configured. Please add a store in the admin panel.' 
-    }, { status: 400 });
-  }
-
-  // Use the first store for now
-  const store = stores[0];
-  const discogsUsername = store.username;
-  
-  console.log('Fetching inventory for store:', discogsUsername);
-
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { storeId: string } }
+) {
   try {
+    const { storeId } = params;
+    
+    // Get the store from admin stores
+    const stores = adminStores.getAll();
+    const store = stores.find(s => s.id === storeId);
+    
+    if (!store) {
+      return NextResponse.json({ error: 'Store not found' }, { status: 404 });
+    }
+
+    console.log('Fetching inventory for store:', store.username);
+    
     // Try to fetch store inventory, but fallback to mock data if it fails
     let data = { listings: [] };
     
     try {
       const response = await fetch(
-        `${DISCOGS_API_BASE}/users/${discogsUsername}/inventory?status=For%20Sale&per_page=50`,
+        `${DISCOGS_API_BASE}/users/${store.username}/inventory?status=For%20Sale&per_page=50`,
         {
           headers: {
             'User-Agent': 'Rotation/1.0 +https://rotation.app',
@@ -61,9 +54,10 @@ export async function GET() {
             artist: "Annihilator",
             year: 1990,
             label: ["Roadrunner Records"],
-            genre: ["Heavy Metal", "Thrash"],
             format: "Vinyl",
-            thumb: "https://i.discogs.com/r/jpeg/400x400/1990/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTI0OTUw/NC0xMjQ0MzI2MzAy/LmpwZWc.jpeg",
+            genre: ["Metal", "Thrash Metal"],
+            style: ["Heavy Metal", "Thrash"],
+            thumb: "https://i.discogs.com/r/jpeg/400x400/1990/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy1SLTI0OTUw/NC0xMjQ0MzI2MzAy/LmpwZWc.jpeg",
             resource_url: "https://api.discogs.com/releases/249504"
           },
           price: { currency: "USD", value: 25.99 },
@@ -79,8 +73,9 @@ export async function GET() {
             artist: "Michael Jackson",
             year: 1982,
             label: ["Epic Records"],
-            genre: ["Pop", "R&B", "Funk"],
             format: "Vinyl",
+            genre: ["Pop", "R&B"],
+            style: ["Pop Rock", "Soul"],
             thumb: "https://i.discogs.com/r/jpeg/400x400/1982/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTEyMzQ1/NjctMTIzNDU2Nzg5/MC5qcGVn.jpeg",
             resource_url: "https://api.discogs.com/releases/1234567"
           },
@@ -97,8 +92,9 @@ export async function GET() {
             artist: "Pink Floyd",
             year: 1973,
             label: ["Harvest Records"],
-            genre: ["Progressive Rock", "Psychedelic Rock"],
             format: "Vinyl",
+            genre: ["Rock", "Progressive Rock"],
+            style: ["Psychedelic Rock", "Art Rock"],
             thumb: "https://i.discogs.com/r/jpeg/400x400/1973/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTk4NzY1/NC0xMjM0NTY3ODkw/LmpwZWc.jpeg",
             resource_url: "https://api.discogs.com/releases/987654"
           },
@@ -135,16 +131,24 @@ export async function GET() {
       condition: item.condition,
       sleeve_condition: item.sleeve_condition,
       comments: item.comments,
+      store: {
+        id: store.id,
+        username: store.username
+      }
     })) || [];
 
     return NextResponse.json({
       results: transformedReleases,
-      pagination: data.pagination || {}
+      pagination: data.pagination || {},
+      store: {
+        id: store.id,
+        username: store.username
+      }
     });
   } catch (error) {
     console.error('Error fetching store inventory:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch inventory from Discogs API' },
+      { error: 'Failed to fetch inventory' },
       { status: 500 }
     );
   }

@@ -2,11 +2,13 @@
 
 import { useUser } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 import Header from '@/components/Header';
 
 export default function ProfilePage() {
   const { user } = useUser();
+  const router = useRouter();
   const [discogsUsername, setDiscogsUsername] = useState('');
   const [savedUsername, setSavedUsername] = useState('');
   const [saving, setSaving] = useState(false);
@@ -43,6 +45,10 @@ export default function ProfilePage() {
 
       if (response.ok) {
         setSavedUsername(discogsUsername);
+        // Redirect to home page after successful save
+        setTimeout(() => {
+          router.push('/');
+        }, 1500); // Wait 1.5 seconds to show success message
       } else {
         throw new Error('Failed to save username');
       }

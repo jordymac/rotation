@@ -20,6 +20,12 @@ export default function Header() {
           
           <SignedIn>
             <Link 
+              href="/admin" 
+              className="text-gray-700 hover:text-gray-900 transition-colors"
+            >
+              Admin
+            </Link>
+            <Link 
               href="/profile" 
               className="text-gray-700 hover:text-gray-900 transition-colors"
             >
