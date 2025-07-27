@@ -1,13 +1,14 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+// import { useUser } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 import Header from '@/components/Header';
 
 export default function ProfilePage() {
-  const { user } = useUser();
+  // const { user } = useUser();
+  const user = null; // Temporarily disabled
   const router = useRouter();
   const [discogsUsername, setDiscogsUsername] = useState('');
   const [savedUsername, setSavedUsername] = useState('');

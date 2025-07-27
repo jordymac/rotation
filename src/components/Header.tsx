@@ -1,4 +1,4 @@
-import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+// import { SignInButton, SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
 
 export default function Header() {
@@ -10,29 +10,22 @@ export default function Header() {
         </Link>
         
         <nav className="flex items-center gap-4">
-          <SignedOut>
-            <SignInButton>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
-                Sign In
-              </button>
-            </SignInButton>
-          </SignedOut>
-          
-          <SignedIn>
-            <Link 
-              href="/admin" 
-              className="text-gray-700 hover:text-gray-900 transition-colors"
-            >
-              Admin
-            </Link>
-            <Link 
-              href="/profile" 
-              className="text-gray-700 hover:text-gray-900 transition-colors"
-            >
-              Profile
-            </Link>
-            <UserButton />
-          </SignedIn>
+          {/* Temporarily disabled Clerk auth for deployment */}
+          <Link 
+            href="/admin" 
+            className="text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            Admin
+          </Link>
+          <Link 
+            href="/profile" 
+            className="text-gray-700 hover:text-gray-900 transition-colors"
+          >
+            Profile
+          </Link>
+          <button className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors">
+            Sign In
+          </button>
         </nav>
       </div>
     </header>

@@ -1,13 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useUser } from '@clerk/nextjs';
+// import { useUser } from '@clerk/nextjs';
 import { DiscogsRelease, getStoreInventory } from '@/utils/discogs';
 import RecordCard from './RecordCard';
 import Link from 'next/link';
 
 export default function Feed() {
-  const { user, isLoaded } = useUser();
+  // const { user, isLoaded } = useUser();
+  const user = null; // Temporarily disabled
+  const isLoaded = true;
   const [releases, setReleases] = useState<DiscogsRelease[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

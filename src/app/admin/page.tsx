@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@clerk/nextjs';
+// import { useUser } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
 import Header from '@/components/Header';
 
@@ -11,7 +11,8 @@ interface Store {
 }
 
 export default function AdminPage() {
-  const { user } = useUser();
+  // const { user } = useUser();
+  const user = null; // Temporarily disabled
   const [stores, setStores] = useState<Store[]>([]);
   const [newStoreUsername, setNewStoreUsername] = useState('');
   const [loading, setLoading] = useState(false);
