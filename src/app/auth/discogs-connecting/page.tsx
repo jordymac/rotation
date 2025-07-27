@@ -54,14 +54,14 @@ export default function DiscogsConnectingPage() {
           Connecting to Discogs...
         </h1>
         <p className="text-gray-600 mb-6">
-          You're being redirected to Discogs to authorize your account.
+          You&apos;re being redirected to Discogs to authorize your account.
         </p>
         {authUrl && (
           <a
             href={authUrl}
             className="text-blue-600 hover:text-blue-800 text-sm"
           >
-            Click here if you're not redirected automatically
+            Click here if you&apos;re not redirected automatically
           </a>
         )}
       </div>

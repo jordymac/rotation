@@ -56,7 +56,7 @@ export default function Home() {
           </div>
           
           <div className="text-center">
-            <p className="text-xl text-gray-600 mb-2">It's not built for discovery. It's not built for music.</p>
+            <p className="text-xl text-gray-600 mb-2">It&apos;s not built for discovery. It&apos;s not built for music.</p>
           </div>
         </div>
 
@@ -137,7 +137,7 @@ export default function Home() {
         {/* Under the Hood */}
         <div className="max-w-4xl mx-auto py-16 md:py-24">
           <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-8 text-center">
-            What's under the hood
+            What&apos;s under the hood
           </h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -189,7 +189,7 @@ export default function Home() {
               </div>
               <div className="bg-white border border-gray-200 rounded-lg p-6">
                 <h3 className="text-lg font-semibold text-gray-900">
-                  "For You" personalization
+                  &quot;For You&quot; personalization
                 </h3>
               </div>
               <div className="bg-white border border-gray-200 rounded-lg p-6">

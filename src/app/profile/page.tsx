@@ -101,7 +101,7 @@ export default function ProfilePage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
             />
             <p className="text-sm text-gray-500 mt-1">
-              This will display your store's inventory in a scrollable feed for customers to browse and purchase.
+              This will display your store&apos;s inventory in a scrollable feed for customers to browse and purchase.
             </p>
           </div>
 

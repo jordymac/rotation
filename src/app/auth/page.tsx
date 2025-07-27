@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
-import ConnectDiscogsButton from '@/components/ConnectDiscogsButton';
 
 export default function AuthPage() {
   const router = useRouter();
@@ -25,7 +24,7 @@ export default function AuthPage() {
             Connect your Discogs account to get started with Rotation.
           </p>
           <p className="text-lg text-gray-600 mb-12">
-            We'll use your Discogs connection to curate the perfect record discovery feed for you.
+            We&apos;ll use your Discogs connection to curate the perfect record discovery feed for you.
           </p>
           
           <div className="bg-gray-50 rounded-lg p-8 mb-8">
@@ -39,7 +38,7 @@ export default function AuthPage() {
               </div>
               <div className="flex items-start space-x-3">
                 <span className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-sm font-bold mt-1">2</span>
-                <p className="text-gray-700">We'll analyze your collection and wishlist</p>
+                <p className="text-gray-700">We&apos;ll analyze your collection and wishlist</p>
               </div>
               <div className="flex items-start space-x-3">
                 <span className="w-6 h-6 bg-gray-900 text-white rounded-full flex items-center justify-center text-sm font-bold mt-1">3</span>
