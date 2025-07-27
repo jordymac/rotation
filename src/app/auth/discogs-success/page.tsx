@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
-export default function DiscogsSuccessPage() {
+function DiscogsSuccessContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [username, setUsername] = useState<string | null>(null);
@@ -91,5 +91,20 @@ export default function DiscogsSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function DiscogsSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-6"></div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading...</h1>
+        </div>
+      </div>
+    }>
+      <DiscogsSuccessContent />
+    </Suspense>
   );
 }
