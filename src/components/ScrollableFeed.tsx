@@ -124,6 +124,35 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
     setCurrentTrackIndex(0);
   }, [currentReleaseIndex]);
 
+  // Prevent page scrolling on mobile
+  useEffect(() => {
+    const preventScroll = (e: TouchEvent) => {
+      e.preventDefault();
+    };
+
+    const preventWheelScroll = (e: WheelEvent) => {
+      e.preventDefault();
+    };
+
+    // Add touch and wheel event listeners to prevent default scrolling
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    document.addEventListener('wheel', preventWheelScroll, { passive: false });
+
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.width = '100%';
+
+    return () => {
+      // Clean up when component unmounts
+      document.removeEventListener('touchmove', preventScroll);
+      document.removeEventListener('wheel', preventWheelScroll);
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, []);
+
   // Handle vertical scroll (between releases)
   const handleScroll = (direction: 'up' | 'down') => {
     if (isScrolling || releasesWithTracks.length === 0) return;
@@ -329,7 +358,7 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
       <div 
         id="mobile-feed-container"
         ref={containerRef}
-        className="md:hidden h-screen w-full bg-black text-white overflow-hidden relative"
+        className="md:hidden h-screen w-full bg-black text-white overflow-hidden relative fixed inset-0"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
@@ -613,15 +642,15 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
       </div>
 
       {/* Desktop 3-Column Layout */}
-      <div id="desktop-feed-container" className="hidden md:flex h-screen bg-black">
+      <div id="desktop-feed-container" className="hidden md:flex h-screen bg-black overflow-hidden relative">
         {/* Background Image for Desktop */}
         <div 
           id="desktop-background-image"
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat overflow-hidden"
           style={{
             backgroundImage: currentRelease.thumb ? `url(${currentRelease.thumb})` : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
             filter: 'blur(20px) brightness(0.3)',
-            transform: 'scale(1.1)'
+            transform: 'scale(1.05)'
           }}
         />
         
@@ -807,95 +836,93 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
         </div>
 
         {/* Right Column: Actions */}
-        <div id="desktop-actions-column" className="w-80 bg-black/80 backdrop-blur-md shadow-lg p-6 relative z-10">
-          <div className="space-y-6">
-            <h2 className="text-2xl font-bold text-white">Actions</h2>
-            
-            {/* Cart status */}
-            <div className="flex items-center justify-between">
-              <span className="text-white/80">Items in crate:</span>
-              <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-sm font-medium">
-                {cartCount}
-              </span>
-            </div>
-
-            {/* Action buttons */}
-            <div className="space-y-3">
-              <button
-                onClick={async () => {
-                  try {
-                    const response = await fetch('/api/wishlist', {
-                      method: 'POST',
-                      headers: {
-                        'Content-Type': 'application/json',
-                      },
-                      body: JSON.stringify({
-                        releaseId: currentRelease.id,
-                        userId: 'temp_user', // TODO: Get from auth context
-                      }),
-                    });
-
-                    if (response.ok) {
-                      const result = await response.json();
-                      alert(`✓ ${result.message}`);
-                    } else {
-                      alert('Failed to add to wishlist');
-                    }
-                  } catch (error) {
-                    console.error('Wishlist error:', error);
-                    alert('Error adding to wishlist');
-                  }
-                }}
-                className="w-full bg-white/20 hover:bg-white/30 rounded-lg py-3 px-6 font-semibold transition-colors flex items-center justify-center gap-2 text-white"
-                title="Add to Wishlist"
-              >
-                <EyeIcon className="w-5 h-5" />
-                <span>Add to Wishlist</span>
-              </button>
-              
-              <button 
-                onClick={() => setCartCount(prev => prev + 1)}
-                className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
-              >
-                <span className="text-lg">📦</span>
-                <span>Add to Crate</span>
-              </button>
-              
-              <a
-                href={`https://www.discogs.com${currentRelease.uri}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors text-center"
-              >
-                Buy Now on Discogs
-              </a>
-            </div>
-
-            {/* Track info */}
-            {currentRelease.tracks && currentRelease.tracks.length > 0 && (
-              <div className="border-t border-white/20 pt-6">
-                <h3 className="text-lg font-semibold text-white mb-3">Track List</h3>
-                <div className="space-y-2">
-                  {currentRelease.tracks.map((track, index) => (
-                    <div 
-                      key={index}
-                      className={`p-2 rounded cursor-pointer transition-colors ${
-                        index === currentTrackIndex 
-                          ? 'bg-white/20 text-white' 
-                          : 'hover:bg-white/10 text-white/80'
-                      }`}
-                      onClick={() => setCurrentTrackIndex(index)}
-                    >
-                      <div className="flex justify-between items-center text-sm">
-                        <span className="font-medium">{track.title}</span>
-                        <span className="text-white/60">{track.duration}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+        <div id="desktop-actions-column" className="w-80 bg-black/80 backdrop-blur-md shadow-lg p-6 relative z-10 flex flex-col h-full">
+          <h2 className="text-2xl font-bold text-white mb-6">Actions</h2>
+          
+          {/* Cart status */}
+          <div className="flex items-center justify-between mb-6">
+            <span className="text-white/80">Items in crate:</span>
+            <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-sm font-medium">
+              {cartCount}
+            </span>
           </div>
+
+          {/* Action buttons */}
+          <div className="space-y-3 mb-6">
+            <button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/wishlist', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                      releaseId: currentRelease.id,
+                      userId: 'temp_user', // TODO: Get from auth context
+                    }),
+                  });
+
+                  if (response.ok) {
+                    const result = await response.json();
+                    alert(`✓ ${result.message}`);
+                  } else {
+                    alert('Failed to add to wishlist');
+                  }
+                } catch (error) {
+                  console.error('Wishlist error:', error);
+                  alert('Error adding to wishlist');
+                }
+              }}
+              className="w-full bg-white/20 hover:bg-white/30 rounded-lg py-3 px-6 font-semibold transition-colors flex items-center justify-center gap-2 text-white"
+              title="Add to Wishlist"
+            >
+              <EyeIcon className="w-5 h-5" />
+              <span>Add to Wishlist</span>
+            </button>
+            
+            <button 
+              onClick={() => setCartCount(prev => prev + 1)}
+              className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+            >
+              <span className="text-lg">📦</span>
+              <span>Add to Crate</span>
+            </button>
+            
+            <a
+              href={`https://www.discogs.com${currentRelease.uri}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors text-center"
+            >
+              Buy Now on Discogs
+            </a>
+          </div>
+
+          {/* Track info */}
+          {currentRelease.tracks && currentRelease.tracks.length > 0 && (
+            <div className="border-t border-white/20 pt-6 flex-1 flex flex-col min-h-0">
+              <h3 className="text-lg font-semibold text-white mb-3">Track List</h3>
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {currentRelease.tracks.map((track, index) => (
+                  <div 
+                    key={index}
+                    className={`p-2 rounded cursor-pointer transition-colors ${
+                      index === currentTrackIndex 
+                        ? 'bg-white/20 text-white' 
+                        : 'hover:bg-white/10 text-white/80'
+                    }`}
+                    onClick={() => setCurrentTrackIndex(index)}
+                  >
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="font-medium">{track.title}</span>
+                      <span className="text-white/60">{track.duration}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </>

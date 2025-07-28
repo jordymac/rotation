@@ -232,10 +232,10 @@ function StoresContent() {
 
   return (
     <div className="min-h-screen bg-black text-white">
-      {/* Header */}
+      {/* Sticky Header - Title and Back Button Only */}
       <div className="border-b border-white/20 bg-black/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">All Stores</h1>
               <p className="text-white/70 mt-1">Discover record stores from around the world</p>
@@ -247,66 +247,68 @@ function StoresContent() {
               ← Back to Feed
             </button>
           </div>
-
-          {/* Search Bar */}
-          <div className="relative mb-6">
-            <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
-            <input
-              type="text"
-              placeholder="Search stores by name, handle, or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-white/40"
-            />
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-wrap gap-4">
-            {/* Genre Filter */}
-            <div className="flex-1 min-w-64">
-              <label className="block text-sm font-medium text-white/80 mb-2">Genres</label>
-              <div className="flex flex-wrap gap-2">
-                {allGenres.slice(0, 8).map((genre) => (
-                  <button
-                    key={genre}
-                    onClick={() => handleGenreToggle(genre)}
-                    className={`px-3 py-1 rounded text-sm transition-colors ${
-                      selectedGenres.includes(genre)
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white/20 text-white/80 hover:bg-white/30'
-                    }`}
-                  >
-                    {genre}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Release Count Filter */}
-            <div>
-              <label className="block text-sm font-medium text-white/80 mb-2">Release Count</label>
-              <select
-                value={releaseCountFilter}
-                onChange={(e) => setReleaseCountFilter(e.target.value)}
-                className="bg-white/10 border border-white/20 rounded-lg text-white px-3 py-2 focus:outline-none focus:border-white/40"
-              >
-                <option value="">Any amount</option>
-                <option value=">500">&gt; 500 releases</option>
-                <option value=">1000">&gt; 1,000 releases</option>
-                <option value=">5000">&gt; 5,000 releases</option>
-                <option value=">10000">&gt; 10,000 releases</option>
-              </select>
-            </div>
-          </div>
         </div>
       </div>
 
-      {/* Store Grid */}
+      {/* Scrollable Content - Search and Filters */}
       <div className="max-w-7xl mx-auto px-4 py-8">
+        {/* Search Bar */}
+        <div className="relative mb-6">
+          <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/50" />
+          <input
+            type="text"
+            placeholder="Search stores by name, handle, or description..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-white/40"
+          />
+        </div>
+
+        {/* Filters */}
+        <div className="flex flex-wrap gap-4 mb-8">
+          {/* Genre Filter */}
+          <div className="flex-1 min-w-64">
+            <label className="block text-sm font-medium text-white/80 mb-2">Genres</label>
+            <div className="flex flex-wrap gap-2">
+              {allGenres.slice(0, 8).map((genre) => (
+                <button
+                  key={genre}
+                  onClick={() => handleGenreToggle(genre)}
+                  className={`px-3 py-1 rounded text-sm transition-colors ${
+                    selectedGenres.includes(genre)
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-white/20 text-white/80 hover:bg-white/30'
+                  }`}
+                >
+                  {genre}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Release Count Filter */}
+          <div>
+            <label className="block text-sm font-medium text-white/80 mb-2">Release Count</label>
+            <select
+              value={releaseCountFilter}
+              onChange={(e) => setReleaseCountFilter(e.target.value)}
+              className="bg-white/10 border border-white/20 rounded-lg text-white px-3 py-2 focus:outline-none focus:border-white/40"
+            >
+              <option value="">Any amount</option>
+              <option value=">500">&gt; 500 releases</option>
+              <option value=">1000">&gt; 1,000 releases</option>
+              <option value=">5000">&gt; 5,000 releases</option>
+              <option value=">10000">&gt; 10,000 releases</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Results Count */}
         <div className="mb-6 text-white/70">
           {filteredStores.length} store{filteredStores.length !== 1 ? 's' : ''} found
         </div>
 
+        {/* Store Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredStores.map((store) => (
             <StoreCard key={store.id} store={store} />

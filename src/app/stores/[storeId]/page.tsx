@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import RecordCard from '@/components/RecordCard';
+import RecordManagementModal from '@/components/RecordManagementModal';
 import { DiscogsRelease } from '@/utils/discogs';
 
 interface Store {
@@ -50,25 +51,23 @@ function StorefrontContent() {
   const viewMode = 'list';
   const [showFilters, setShowFilters] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<DiscogsRelease | null>(null);
+  const [showManagementModal, setShowManagementModal] = useState(false);
 
   useEffect(() => {
     loadStoreInventory();
   }, [storeId]);
 
   const handleManageItem = (release: DiscogsRelease) => {
-    // For now, show detailed info - will implement modal later
-    const details = [
-      `Title: ${release.title}`,
-      `Artist: ${release.artist}`,
-      `Label: ${release.label}`,
-      `Year: ${release.year}`,
-      `Condition: ${release.condition || 'N/A'}`,
-      `Price: ${release.price || 'N/A'}`,
-      `Status: Active`,
-      `Verification: ✅ Verified`
-    ].join('\n');
-    
-    alert(`Item Management\n\n${details}\n\nActions:\n- Edit details\n- Update price\n- Change status\n- View analytics`);
+    setSelectedRecord(release);
+    setShowManagementModal(true);
+  };
+
+  const handleSaveRecord = (updatedRelease: Partial<DiscogsRelease>) => {
+    // TODO: Implement save functionality to update the record in the backend
+    console.log('Saving record updates:', updatedRelease);
+    // For now, just log the changes. In production, this would update the record
+    // and refresh the inventory list
   };
 
   const loadStoreInventory = async () => {
@@ -134,7 +133,7 @@ function StorefrontContent() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-black text-white">
         <Header />
         <div className="flex justify-center items-center min-h-64">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -145,11 +144,11 @@ function StorefrontContent() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-black text-white">
         <Header />
         <div className="container mx-auto px-4 py-12 text-center">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Store Not Found</h1>
-          <p className="text-red-600 mb-8">{error}</p>
+          <h1 className="text-3xl font-bold text-white mb-4">Store Not Found</h1>
+          <p className="text-red-400 mb-8">{error}</p>
           <button
             onClick={() => router.back()}
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
@@ -162,17 +161,17 @@ function StorefrontContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-black text-white">
       <Header />
       <div className="container mx-auto px-4 py-8">
         {/* Store Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-6 mb-8">
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-3xl font-bold text-white mb-2">
                 {storeData?.store.username} - Store Management
               </h1>
-              <p className="text-gray-600 mb-4">
+              <p className="text-white/70 mb-4">
                 Managing {storeData?.pagination.items} inventory items
               </p>
               <div className="flex gap-4">
@@ -197,35 +196,35 @@ function StorefrontContent() {
           </div>
 
           {/* Seller Dashboard Stats */}
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-gray-200">
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/20">
             <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{storeData?.pagination.items || 0}</div>
-              <div className="text-sm text-gray-500">Total Items</div>
+              <div className="text-2xl font-bold text-green-400">{storeData?.pagination.items || 0}</div>
+              <div className="text-sm text-white/60">Total Items</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">0</div>
-              <div className="text-sm text-gray-500">Needs Review</div>
+              <div className="text-2xl font-bold text-blue-400">0</div>
+              <div className="text-sm text-white/60">Needs Review</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">0</div>
-              <div className="text-sm text-gray-500">Recent Views</div>
+              <div className="text-2xl font-bold text-orange-400">0</div>
+              <div className="text-sm text-white/60">Recent Views</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">0</div>
-              <div className="text-sm text-gray-500">This Month Sales</div>
+              <div className="text-2xl font-bold text-purple-400">0</div>
+              <div className="text-sm text-white/60">This Month Sales</div>
             </div>
           </div>
         </div>
 
         {/* Search and Filters Accordion */}
-        <div className="bg-white rounded-lg shadow-sm mb-8">
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 mb-8">
           {/* Accordion Header */}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/20 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-gray-900">Search & Filters</h2>
+              <h2 className="text-lg font-semibold text-white">Search & Filters</h2>
               {(searchQuery || Object.values(filters).some(filter => filter !== '')) && (
                 <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
                   Active
@@ -233,7 +232,7 @@ function StorefrontContent() {
               )}
             </div>
             <div className={`transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`}>
-              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
@@ -252,7 +251,7 @@ function StorefrontContent() {
                     placeholder="Search by artist, title, or label..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:outline-none focus:border-white/40"
                   />
                 </div>
                 
@@ -263,14 +262,14 @@ function StorefrontContent() {
                     placeholder="Min $"
                     value={filters.minPrice}
                     onChange={(e) => setFilters({...filters, minPrice: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:outline-none focus:border-white/40"
                   />
                   <input
                     type="number"
                     placeholder="Max $"
                     value={filters.maxPrice}
                     onChange={(e) => setFilters({...filters, maxPrice: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:outline-none focus:border-white/40"
                   />
                 </div>
 
@@ -278,7 +277,7 @@ function StorefrontContent() {
                 <select
                   value={filters.format}
                   onChange={(e) => setFilters({...filters, format: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:border-white/40"
                 >
                   <option value="">All Formats</option>
                   <option value="vinyl">Vinyl</option>
@@ -292,7 +291,7 @@ function StorefrontContent() {
                 <select
                   value={filters.condition}
                   onChange={(e) => setFilters({...filters, condition: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:border-white/40"
                 >
                   <option value="">All Conditions</option>
                   <option value="mint">Mint (M)</option>
@@ -307,7 +306,7 @@ function StorefrontContent() {
                   placeholder="Year"
                   value={filters.year}
                   onChange={(e) => setFilters({...filters, year: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:outline-none focus:border-white/40"
                 />
 
                 {/* Clear Filters */}
@@ -326,21 +325,21 @@ function StorefrontContent() {
                       performance: ''
                     });
                   }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-900 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 text-white/70 hover:text-white border border-white/20 rounded-md hover:bg-white/20 transition-colors"
                 >
                   Clear Filters
                 </button>
               </div>
 
               {/* Management Filters */}
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Management Filters</h3>
+              <div className="mt-4 pt-4 border-t border-white/20">
+                <h3 className="text-sm font-medium text-white/80 mb-3">Management Filters</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* Status Filter */}
                   <select
                     value={filters.status}
                     onChange={(e) => setFilters({...filters, status: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:border-white/40"
                   >
                     <option value="">All Status</option>
                     <option value="active">Active</option>
@@ -353,7 +352,7 @@ function StorefrontContent() {
                   <select
                     value={filters.verification}
                     onChange={(e) => setFilters({...filters, verification: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:border-white/40"
                   >
                     <option value="">All Verification</option>
                     <option value="verified">✅ Verified</option>
@@ -365,7 +364,7 @@ function StorefrontContent() {
                   <select
                     value={filters.performance}
                     onChange={(e) => setFilters({...filters, performance: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:border-white/40"
                   >
                     <option value="">All Performance</option>
                     <option value="high_views">🔥 High Views</option>
@@ -379,20 +378,20 @@ function StorefrontContent() {
         </div>
 
         {/* Verification Queue Accordion */}
-        <div className="bg-white rounded-lg shadow-sm mb-8">
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 mb-8">
           {/* Accordion Header */}
           <button
             onClick={() => setShowVerification(!showVerification)}
-            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/20 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-gray-900">Verification Queue</h2>
+              <h2 className="text-lg font-semibold text-white">Verification Queue</h2>
               <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
                 3 items need review
               </span>
             </div>
             <div className={`transform transition-transform duration-200 ${showVerification ? 'rotate-180' : ''}`}>
-              <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </div>
@@ -405,12 +404,12 @@ function StorefrontContent() {
             <div className="px-6 pb-6">
               <div className="space-y-3">
                 {/* Mock verification items */}
-                <div className="flex items-center justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <span className="text-yellow-600">⚠️</span>
+                    <span className="text-yellow-400">⚠️</span>
                     <div>
-                      <div className="font-medium text-gray-900">Michael Jackson - Thriller</div>
-                      <div className="text-sm text-gray-500">Metadata mismatch: Year (1982 vs 1983)</div>
+                      <div className="font-medium text-white">Michael Jackson - Thriller</div>
+                      <div className="text-sm text-white/60">Metadata mismatch: Year (1982 vs 1983)</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -423,12 +422,12 @@ function StorefrontContent() {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <span className="text-red-600">❌</span>
+                    <span className="text-red-400">❌</span>
                     <div>
-                      <div className="font-medium text-gray-900">Pink Floyd - Dark Side of the Moon</div>
-                      <div className="text-sm text-gray-500">Image quality too low for verification</div>
+                      <div className="font-medium text-white">Pink Floyd - Dark Side of the Moon</div>
+                      <div className="text-sm text-white/60">Image quality too low for verification</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -441,16 +440,16 @@ function StorefrontContent() {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
                   <div className="flex items-center gap-3">
-                    <span className="text-green-600">✅</span>
+                    <span className="text-green-400">✅</span>
                     <div>
-                      <div className="font-medium text-gray-900">Annihilator - Never, Neverland</div>
-                      <div className="text-sm text-gray-500">Successfully verified and matched</div>
+                      <div className="font-medium text-white">Annihilator - Never, Neverland</div>
+                      <div className="text-sm text-white/60">Successfully verified and matched</div>
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded">
+                    <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded border border-green-500/30">
                       Verified
                     </span>
                   </div>
@@ -458,7 +457,7 @@ function StorefrontContent() {
               </div>
               
               <div className="mt-4 text-center">
-                <button className="text-blue-600 hover:text-blue-800 text-sm">
+                <button className="text-blue-400 hover:text-blue-300 text-sm">
                   View All Verification History →
                 </button>
               </div>
@@ -467,10 +466,10 @@ function StorefrontContent() {
         </div>
 
         {/* Bulk Actions */}
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-4 mb-6">
             <div className="flex justify-between items-center">
               <div className="flex items-center gap-4">
-                <span className="text-sm text-gray-600">Bulk Actions:</span>
+                <span className="text-sm text-white/70">Bulk Actions:</span>
                 <div className="flex gap-2">
                   <button className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
                     Update Prices
@@ -486,16 +485,16 @@ function StorefrontContent() {
                   </button>
                 </div>
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-white/60">
                 0 items selected
               </div>
             </div>
           </div>
 
         {/* Results */}
-        <div className="mb-4 text-gray-600">
+        <div className="mb-4 text-white/70">
           Showing {filteredReleases.length} of {storeData?.pagination.items} items
-          <span className="ml-4 text-blue-600">
+          <span className="ml-4 text-blue-400">
             • {Math.floor(filteredReleases.length * 0.8)} active • {Math.ceil(filteredReleases.length * 0.15)} need review • {Math.ceil(filteredReleases.length * 0.05)} inactive
           </span>
         </div>
@@ -503,7 +502,7 @@ function StorefrontContent() {
         {/* Inventory List */}
         {filteredReleases.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-gray-500 mb-4">
+            <p className="text-white/60 mb-4">
               No items match your search criteria.
             </p>
             <button
@@ -521,7 +520,7 @@ function StorefrontContent() {
                   performance: ''
                 });
               }}
-              className="text-blue-600 hover:text-blue-800"
+              className="text-blue-400 hover:text-blue-300"
             >
               Clear all filters
             </button>
@@ -540,6 +539,19 @@ function StorefrontContent() {
           </div>
         )}
       </div>
+
+      {/* Record Management Modal */}
+      {selectedRecord && (
+        <RecordManagementModal
+          release={selectedRecord}
+          isOpen={showManagementModal}
+          onClose={() => {
+            setShowManagementModal(false);
+            setSelectedRecord(null);
+          }}
+          onSave={handleSaveRecord}
+        />
+      )}
     </div>
   );
 }
@@ -547,10 +559,10 @@ function StorefrontContent() {
 export default function StorefrontPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-8 max-w-md text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-6"></div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Loading store...</h1>
+          <h1 className="text-2xl font-bold text-white mb-4">Loading store...</h1>
         </div>
       </div>
     }>

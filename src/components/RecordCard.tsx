@@ -73,7 +73,7 @@ interface RecordCardProps {
 export default function RecordCard({ release, viewMode = 'grid', isSellerMode = false, onManageItem, currentTrack, showTrackInfo = false, tracks, currentTrackIndex = 0, onTrackChange, isScrolling = false }: RecordCardProps) {
   if (viewMode === 'list') {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
+      <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-4 hover:bg-white/20 transition-all duration-200">
         <div className="flex gap-4 min-h-[120px]">
           {/* Album Image - Far Left, Full Height */}
           <div className="flex-shrink-0">
@@ -92,11 +92,11 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
                 />
               ) : null}
               <div 
-                className={`w-full h-full bg-gray-200 flex items-center justify-center ${
+                className={`w-full h-full bg-white/20 flex items-center justify-center ${
                   release.thumb ? 'hidden' : 'flex'
                 }`}
               >
-                <span className="text-gray-500 text-xs">🎵</span>
+                <span className="text-white/60 text-xs">🎵</span>
               </div>
             </div>
           </div>
@@ -105,13 +105,13 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
           <div className="flex-1 min-w-0 grid grid-cols-4 gap-6 items-center">
             {/* Column 1: Album Details */}
             <div className="min-w-0">
-              <h3 className="font-semibold text-sm text-gray-900 truncate mb-1">
+              <h3 className="font-semibold text-sm text-white truncate mb-1">
                 {release.title}
               </h3>
-              <p className="text-sm text-gray-600 truncate mb-1">
+              <p className="text-sm text-white/80 truncate mb-1">
                 {release.artist}
               </p>
-              <p className="text-xs text-gray-500 truncate mb-2">
+              <p className="text-xs text-white/60 truncate mb-2">
                 {release.label} • {release.year}
               </p>
               
@@ -121,7 +121,7 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
                   {release.genre.slice(0, 2).map((genre, index) => (
                     <span
                       key={index}
-                      className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs"
+                      className="bg-white/20 text-white/80 px-2 py-1 rounded text-xs"
                     >
                       {genre}
                     </span>
@@ -130,7 +130,7 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
               )}
               
               {/* Stats */}
-              <div className="flex items-center gap-3 text-xs text-gray-500">
+              <div className="flex items-center gap-3 text-xs text-white/60">
                 <div className="flex items-center gap-1">
                   <span>🎵</span>
                   <span>{Math.floor(Math.random() * 1000 + 50)} plays</span>
@@ -150,19 +150,19 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
             <div className="text-center">
               <div className="mb-2">
                 {release.condition && (
-                  <p className="text-sm text-gray-700">
+                  <p className="text-sm text-white/80">
                     {release.condition}
                   </p>
                 )}
                 {release.sleeve_condition && (
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-white/60">
                     Sleeve: {release.sleeve_condition}
                   </p>
                 )}
               </div>
               <div>
                 {release.price && (
-                  <p className="text-base font-semibold text-green-600">
+                  <p className="text-base font-semibold text-green-400">
                     {release.price}
                   </p>
                 )}
@@ -171,16 +171,16 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
             
             {/* Column 3: Verification */}
             <div className="text-center">
-              <p className="text-sm text-gray-700 mb-1">
+              <p className="text-sm text-white/80 mb-1">
                 4/4 tracks
               </p>
               <div className="flex items-center justify-center gap-1 mb-1">
-                <span className="text-xs text-green-600">🎵</span>
-                <span className="text-xs text-gray-500">Audio Match</span>
+                <span className="text-xs text-green-400">🎵</span>
+                <span className="text-xs text-white/60">Audio Match</span>
               </div>
               <div className="flex items-center justify-center gap-1">
-                <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                <span className="text-xs text-gray-500">Verified</span>
+                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                <span className="text-xs text-white/60">Verified</span>
               </div>
             </div>
             
@@ -189,19 +189,19 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
               {isSellerMode ? (
                 <button
                   onClick={() => onManageItem?.(release)}
-                  className="w-full border-l-2 border-gray-300 pl-6 pr-4 py-3 flex items-center justify-center text-gray-700 hover:text-gray-900 hover:border-gray-400 transition-colors text-base font-medium"
+                  className="w-full border-l-2 border-white/20 pl-6 pr-4 py-3 flex items-center justify-center text-white/80 hover:text-white hover:border-white/40 transition-colors text-base font-medium"
                 >
                   <span className="flex-1 text-center">Manage</span>
-                  <span className="text-gray-400 text-lg ml-2">›</span>
+                  <span className="text-white/40 text-lg ml-2">›</span>
                 </button>
               ) : (
-                <div className="w-full border-l-2 border-gray-300 pl-6 pr-4 py-3 flex items-center justify-center gap-3">
+                <div className="w-full border-l-2 border-white/20 pl-6 pr-4 py-3 flex items-center justify-center gap-3">
                   <button
                     onClick={() => {
                       // TODO: Add to user's Discogs wishlist
                       alert('Added to wishlist! (Will link to Discogs when user auth is implemented)');
                     }}
-                    className="p-2 rounded-full bg-gray-100 hover:bg-blue-100 text-gray-600 hover:text-blue-600 transition-colors"
+                    className="p-2 rounded-full bg-white/20 hover:bg-blue-500/30 text-white/80 hover:text-blue-300 transition-colors"
                     title="Add to Wishlist"
                   >
                     <EyeIcon className="w-5 h-5" />
@@ -225,7 +225,7 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
   
   return (
     <div id="record-card" className="w-full max-w-72 sm:max-w-80 mx-auto flex flex-col h-full max-h-full">
-      <div id="album-artwork-container" className="relative flex-shrink-0 mb-3 sm:mb-4 mx-auto aspect-square max-h-48 sm:max-h-64 max-w-48 sm:max-w-64">
+      <div id="album-artwork-container" className="relative flex-shrink-0 mb-3 sm:mb-4 mx-auto aspect-square max-h-48 sm:max-h-64 max-w-48 sm:max-w-full">
         {release.thumb ? (
           <img
             id="album-artwork-image"
@@ -254,20 +254,92 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
         
         {/* Track navigation dots - overlaid on image */}
         {tracks && tracks.length > 1 && (
-          <div id="track-navigation-dots" className="absolute bottom-3 left-1/2 transform -translate-x-1/2">
-            <div className="bg-black/20 rounded-full px-3 py-2 backdrop-blur-sm">
-              <div className="flex justify-center gap-2">
-                {tracks.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => !isScrolling && onTrackChange?.(index)}
-                    className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                      index === currentTrackIndex 
-                        ? 'bg-white scale-125' 
-                        : 'bg-white/60 hover:bg-white/80'
-                    }`}
-                  />
-                ))}
+          <div id="track-navigation-dots" className="absolute bottom-3 left-1/2 transform -translate-x-1/2 w-full max-w-full px-4">
+            <div className="bg-black/20 rounded-full px-4 py-1
+             backdrop-blur-sm max-w-full">
+              <div className="flex justify-center gap-2 py-1">
+                {(() => {
+                  const totalTracks = tracks.length;
+                  const current = currentTrackIndex || 0;
+                  
+                  // If 5 or fewer tracks, show all
+                  if (totalTracks <= 5) {
+                    return tracks.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => !isScrolling && onTrackChange?.(index)}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 flex-shrink-0 ${
+                          index === current 
+                            ? 'bg-white scale-125' 
+                            : 'bg-white/60 hover:bg-white/80'
+                        }`}
+                      />
+                    ));
+                  }
+                  
+                  // For more than 5 tracks, use sliding window with progressive sizing
+                  let startIndex, endIndex;
+                  
+                  if (current <= 2) {
+                    // Stay at start for first 3 tracks
+                    startIndex = 0;
+                    endIndex = 4;
+                  } else if (current >= totalTracks - 3) {
+                    // Stay at end for last 3 tracks
+                    startIndex = totalTracks - 5;
+                    endIndex = totalTracks - 1;
+                  } else {
+                    // Center on current track
+                    startIndex = current - 2;
+                    endIndex = current + 2;
+                  }
+                  
+                  const visibleDots = [];
+                  const isShowingFirst = startIndex === 0;
+                  const isShowingLast = endIndex === totalTracks - 1;
+                  
+                  for (let i = startIndex; i <= endIndex; i++) {
+                    const position = i - startIndex; // 0, 1, 2, 3, 4
+                    let dotScale = 'scale-75'; // Default smaller size
+                    let opacity = 'bg-white/40';
+                    
+                    // Size based on position and context
+                    if (i === current) {
+                      // Current track - largest
+                      dotScale = 'scale-125';
+                      opacity = 'bg-white';
+                    } else if (position === 2) {
+                      // Middle position when current is not middle - normal size
+                      dotScale = 'scale-100';
+                      opacity = 'bg-white/60';
+                    } else if (position === 1 || position === 3) {
+                      // Adjacent to middle - medium size
+                      dotScale = 'scale-90';
+                      opacity = 'bg-white/50';
+                    } else {
+                      // Edge positions
+                      if ((position === 0 && isShowingFirst) || (position === 4 && isShowingLast)) {
+                        // First or last track visible - normal size
+                        dotScale = 'scale-100';
+                        opacity = 'bg-white/60';
+                      } else {
+                        // Edge dots when first/last not visible - smaller
+                        dotScale = 'scale-75';
+                        opacity = 'bg-white/40';
+                      }
+                    }
+                    
+                    visibleDots.push(
+                      <button
+                        key={i}
+                        onClick={() => !isScrolling && onTrackChange?.(i)}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 flex-shrink-0 ${dotScale} ${opacity} hover:bg-white/80`}
+                      />
+                    );
+                  }
+                  
+                  return visibleDots;
+                })()}
               </div>
             </div>
           </div>
@@ -369,88 +441,121 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
 }
 
 function GenresAndStyles({ genres, styles }: { genres: string[], styles: string[] }) {
-  const [showTooltip, setShowTooltip] = useState(false);
-  const tooltipRef = useRef<HTMLDivElement>(null);
+  const [showGenreTooltip, setShowGenreTooltip] = useState(false);
+  const [showStyleTooltip, setShowStyleTooltip] = useState(false);
+  const genreTooltipRef = useRef<HTMLDivElement>(null);
+  const styleTooltipRef = useRef<HTMLDivElement>(null);
   
-  // Combine genres and styles with their types
-  const allTags = [
-    ...genres.map(genre => ({ text: genre, type: 'genre' as const })),
-    ...styles.map(style => ({ text: style, type: 'style' as const }))
-  ];
-  
-  // Show first 3 tags, rest go into tooltip
-  const visibleTags = allTags.slice(0, 3);
-  const hiddenTags = allTags.slice(3);
-  
-  // Close tooltip when clicking outside (for mobile)
+  // Close tooltips when clicking outside (for mobile)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
-        setShowTooltip(false);
+      if (genreTooltipRef.current && !genreTooltipRef.current.contains(event.target as Node)) {
+        setShowGenreTooltip(false);
+      }
+      if (styleTooltipRef.current && !styleTooltipRef.current.contains(event.target as Node)) {
+        setShowStyleTooltip(false);
       }
     }
     
-    if (showTooltip) {
+    if (showGenreTooltip || showStyleTooltip) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [showTooltip]);
+  }, [showGenreTooltip, showStyleTooltip]);
   
-  if (allTags.length === 0) {
+  if (genres.length === 0 && styles.length === 0) {
     return <div id="genres-styles-empty" className="h-8 mb-4"></div>;
   }
   
   return (
     <div id="genres-styles-container" className="h-8 mb-4 flex items-start relative">
       <div id="genres-styles-tags" className="flex flex-wrap gap-1">
-        {visibleTags.map((tag, index) => (
-          <span
-            key={`${tag.type}-${index}`}
-            id={`${tag.type}-tag-${index}`}
-            className={`px-2 py-1 rounded-full text-xs ${
-              tag.type === 'genre' 
-                ? 'bg-blue-500/20 text-blue-200' 
-                : 'bg-purple-500/20 text-purple-200'
-            }`}
-          >
-            {tag.text}
-          </span>
-        ))}
-        
-        {hiddenTags.length > 0 && (
-          <div id="overflow-tags-container" className="relative" ref={tooltipRef}>
-            <button
-              id="overflow-tags-button"
-              className="bg-white/20 text-white/80 px-2 py-1 rounded-full text-xs hover:bg-white/30 transition-colors"
-              onMouseEnter={() => setShowTooltip(true)}
-              onMouseLeave={() => setShowTooltip(false)}
-              onClick={() => setShowTooltip(!showTooltip)}
+        {/* Show first genre + overflow */}
+        {genres.length > 0 && (
+          <>
+            <span
+              id="genre-tag-0"
+              className="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-200"
             >
-              +{hiddenTags.length}
-            </button>
+              {genres[0]}
+            </span>
             
-            {showTooltip && (
-              <div id="overflow-tags-tooltip" className="absolute bottom-8 left-0 z-20 bg-black/90 backdrop-blur-sm rounded-lg p-3 min-w-48 max-w-64 border border-white/20">
-                <div className="flex flex-wrap gap-1">
-                  {hiddenTags.map((tag, index) => (
-                    <span
-                      key={`tooltip-${tag.type}-${index}`}
-                      id={`tooltip-${tag.type}-tag-${index}`}
-                      className={`px-2 py-1 rounded-full text-xs ${
-                        tag.type === 'genre' 
-                          ? 'bg-blue-500/20 text-blue-200' 
-                          : 'bg-purple-500/20 text-purple-200'
-                      }`}
-                    >
-                      {tag.text}
-                    </span>
-                  ))}
-                </div>
-                {/* Tooltip arrow */}
-                <div id="tooltip-arrow" className="absolute -bottom-1 left-3 w-2 h-2 bg-black/90 rotate-45 border-r border-b border-white/20"></div>
+            {genres.length > 1 && (
+              <div id="overflow-genre-container" className="relative" ref={genreTooltipRef}>
+                <button
+                  id="overflow-genre-button"
+                  className="bg-blue-500/20 text-blue-200 px-2 py-1 rounded-full text-xs hover:bg-blue-500/30 transition-colors"
+                  onMouseEnter={() => setShowGenreTooltip(true)}
+                  onMouseLeave={() => setShowGenreTooltip(false)}
+                  onClick={() => setShowGenreTooltip(!showGenreTooltip)}
+                >
+                  +{genres.length - 1}
+                </button>
+                
+                {showGenreTooltip && (
+                  <div id="overflow-genre-tooltip" className="absolute bottom-8 left-0 z-20 bg-black/90 backdrop-blur-sm rounded-lg p-3 min-w-48 max-w-64 border border-white/20">
+                    <div className="flex flex-wrap gap-1">
+                      {genres.slice(1).map((genre, index) => (
+                        <span
+                          key={`tooltip-genre-${index}`}
+                          id={`tooltip-genre-tag-${index + 1}`}
+                          className="px-2 py-1 rounded-full text-xs bg-blue-500/20 text-blue-200"
+                        >
+                          {genre}
+                        </span>
+                      ))}
+                    </div>
+                    {/* Tooltip arrow */}
+                    <div className="absolute -bottom-1 left-3 w-2 h-2 bg-black/90 rotate-45 border-r border-b border-white/20"></div>
+                  </div>
+                )}
               </div>
             )}
-          </div>
+          </>
+        )}
+        
+        {/* Show first style + overflow */}
+        {styles.length > 0 && (
+          <>
+            <span
+              id="style-tag-0"
+              className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-200"
+            >
+              {styles[0]}
+            </span>
+            
+            {styles.length > 1 && (
+              <div id="overflow-style-container" className="relative" ref={styleTooltipRef}>
+                <button
+                  id="overflow-style-button"
+                  className="bg-purple-500/20 text-purple-200 px-2 py-1 rounded-full text-xs hover:bg-purple-500/30 transition-colors"
+                  onMouseEnter={() => setShowStyleTooltip(true)}
+                  onMouseLeave={() => setShowStyleTooltip(false)}
+                  onClick={() => setShowStyleTooltip(!showStyleTooltip)}
+                >
+                  +{styles.length - 1}
+                </button>
+                
+                {showStyleTooltip && (
+                  <div id="overflow-style-tooltip" className="absolute bottom-8 left-0 z-20 bg-black/90 backdrop-blur-sm rounded-lg p-3 min-w-48 max-w-64 border border-white/20">
+                    <div className="flex flex-wrap gap-1">
+                      {styles.slice(1).map((style, index) => (
+                        <span
+                          key={`tooltip-style-${index}`}
+                          id={`tooltip-style-tag-${index + 1}`}
+                          className="px-2 py-1 rounded-full text-xs bg-purple-500/20 text-purple-200"
+                        >
+                          {style}
+                        </span>
+                      ))}
+                    </div>
+                    {/* Tooltip arrow */}
+                    <div className="absolute -bottom-1 left-3 w-2 h-2 bg-black/90 rotate-45 border-r border-b border-white/20"></div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>
