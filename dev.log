@@ -90,3 +90,61 @@ Curated feed data fetched: {
   }
 }
  GET /api/stores/general-feed/inventory 200 in 3519ms
+ ✓ Compiled in 2.3s (572 modules)
+ GET /feed 200 in 424ms
+ ✓ Compiled in 933ms (572 modules)
+ GET /feed 200 in 320ms
+ ✓ Compiled in 741ms (572 modules)
+ GET /feed 200 in 305ms
+ ✓ Compiled in 963ms (572 modules)
+ GET /feed 200 in 239ms
+ ✓ Compiled in 1809ms (572 modules)
+ GET /feed 200 in 333ms
+ ✓ Compiled in 1119ms (572 modules)
+ GET /feed 200 in 373ms
+ ✓ Compiled in 1436ms (572 modules)
+ GET /feed 200 in 285ms
+ ✓ Compiled in 1011ms (572 modules)
+ GET /feed 200 in 325ms
+ ✓ Compiled in 924ms (572 modules)
+ GET /feed 200 in 360ms
+ ✓ Compiled in 1033ms (572 modules)
+ GET /feed 200 in 297ms
+ ✓ Compiled in 1281ms (572 modules)
+ GET /feed 200 in 214ms
+ ✓ Compiled in 1485ms (572 modules)
+ GET /feed 200 in 252ms
+ ✓ Compiled in 994ms (572 modules)
+ GET /feed 200 in 207ms
+ ✓ Compiled in 582ms (572 modules)
+ GET /feed 200 in 170ms
+ GET /feed 200 in 253ms
+ ✓ Compiled /api/stores/[storeId]/inventory in 491ms (350 modules)
+ ✓ Compiled (375 modules)
+ GET /favicon.ico 200 in 940ms
+Curated feed data fetched: {
+  listingsLength: 50,
+  pagination: {
+    page: 1,
+    pages: 44,
+    per_page: 50,
+    items: 2160,
+    urls: {
+      last: 'https://api.discogs.com/users/fanatico_records/inventory?page=44&per_page=50',
+      next: 'https://api.discogs.com/users/fanatico_records/inventory?page=2&per_page=50'
+    }
+  }
+}
+ GET /api/stores/general-feed/inventory 200 in 2865ms
+ ✓ Compiled in 720ms (239 modules)
+ ✓ Compiled in 442ms (239 modules)
+ GET /feed 200 in 347ms
+ GET /feed 200 in 145ms
+ ✓ Compiled in 1516ms (572 modules)
+ GET /feed 200 in 677ms
+ ✓ Compiled in 1575ms (572 modules)
+ GET /feed 200 in 539ms
+ ✓ Compiled in 1139ms (572 modules)
+ GET /feed 200 in 311ms
+ ✓ Compiled in 1016ms (572 modules)
+ GET /feed 200 in 429ms

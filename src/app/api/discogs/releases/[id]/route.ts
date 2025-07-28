@@ -4,9 +4,9 @@ const DISCOGS_API_BASE = 'https://api.discogs.com';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = params;
+  const { id } = await params;
 
   try {
     const response = await fetch(`${DISCOGS_API_BASE}/releases/${id}`, {

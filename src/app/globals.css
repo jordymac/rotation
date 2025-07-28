@@ -182,3 +182,38 @@ body {
 .hide-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari, Opera */
 }
+
+/* Track pagination dot animations */
+@keyframes dot-slide-grow {
+  0% {
+    transform: scale(0.75);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+}
+
+@keyframes dot-anticipate {
+  0%, 100% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.8;
+  }
+}
+
+.animate-dot-slide-grow {
+  animation: dot-slide-grow 0.4s ease-out forwards;
+}
+
+.animate-dot-anticipate {
+  animation: dot-anticipate 1.5s ease-in-out infinite;
+}

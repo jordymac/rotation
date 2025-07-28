@@ -302,24 +302,35 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
                     const position = i - startIndex; // 0, 1, 2, 3, 4
                     let dotScale = 'scale-75'; // Default smaller size
                     let opacity = 'bg-white/40';
+                    let animationClass = '';
                     
-                    // Size based on position and context
-                    if (i === current) {
+                    // Determine if this is a middle dot that should animate
+                    const isMiddleDot = position >= 1 && position <= 3;
+                    const isCurrentDot = i === current;
+                    const isNextDot = i === current + 1 || i === current - 1;
+                    
+                    // Size and animation based on position and context
+                    if (isCurrentDot) {
                       // Current track - largest
                       dotScale = 'scale-125';
                       opacity = 'bg-white';
-                    } else if (position === 2) {
+                    } else if (isNextDot && isMiddleDot) {
+                      // Next/previous dot in middle positions - animate growth
+                      dotScale = 'scale-110';
+                      opacity = 'bg-white/70';
+                      animationClass = 'animate-dot-anticipate';
+                    } else if (position === 2 && !isCurrentDot) {
                       // Middle position when current is not middle - normal size
                       dotScale = 'scale-100';
                       opacity = 'bg-white/60';
-                    } else if (position === 1 || position === 3) {
+                    } else if ((position === 1 || position === 3) && !isNextDot) {
                       // Adjacent to middle - medium size
                       dotScale = 'scale-90';
                       opacity = 'bg-white/50';
                     } else {
-                      // Edge positions
+                      // Edge positions or other middle positions
                       if ((position === 0 && isShowingFirst) || (position === 4 && isShowingLast)) {
-                        // First or last track visible - normal size
+                        // First or last track visible - keep static normal size
                         dotScale = 'scale-100';
                         opacity = 'bg-white/60';
                       } else {
@@ -333,7 +344,14 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
                       <button
                         key={i}
                         onClick={() => !isScrolling && onTrackChange?.(i)}
-                        className={`w-2 h-2 rounded-full transition-all duration-300 flex-shrink-0 ${dotScale} ${opacity} hover:bg-white/80`}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ease-out flex-shrink-0 ${dotScale} ${opacity} ${animationClass} hover:bg-white/80 ${
+                          isNextDot && isMiddleDot ? 'transform-gpu will-change-transform' : ''
+                        }`}
+                        style={{
+                          transitionProperty: 'transform, background-color, opacity, box-shadow',
+                          transitionTimingFunction: isNextDot && isMiddleDot ? 'cubic-bezier(0.34, 1.56, 0.64, 1)' : 'ease-out',
+                          boxShadow: isNextDot && isMiddleDot ? '0 0 8px rgba(255, 255, 255, 0.3)' : 'none'
+                        }}
                       />
                     );
                   }

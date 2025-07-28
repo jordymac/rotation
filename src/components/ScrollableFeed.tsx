@@ -34,6 +34,11 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
     genre: '',
     year: ''
   });
+  
+  // Background transition states
+  const [currentBgImage, setCurrentBgImage] = useState<string>('');
+  const [nextBgImage, setNextBgImage] = useState<string>('');
+  const [bgTransitioning, setBgTransitioning] = useState(false);
 
   // No more mock tracks - using real Discogs data
 
@@ -124,6 +129,77 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
     setCurrentTrackIndex(0);
   }, [currentReleaseIndex]);
 
+  // Handle background image transitions
+  const updateBackgroundImage = (releaseThumb: string | undefined, delay: number = 0) => {
+    const newBgUrl = releaseThumb;
+    const newBgImage = newBgUrl 
+      ? `url(${newBgUrl})` 
+      : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)';
+    
+    if (currentBgImage === '') {
+      // First load
+      setCurrentBgImage(newBgImage);
+      return;
+    }
+    
+    if (newBgImage === currentBgImage) return;
+    
+    const startBackgroundTransition = () => {
+      // If it's an image URL, preload it
+      if (newBgUrl) {
+        const img = new Image();
+        img.onload = () => {
+          // Image loaded, now start transition
+          setNextBgImage(newBgImage);
+          setBgTransitioning(true);
+          
+          // Complete transition synchronized with card animation (500ms)
+          setTimeout(() => {
+            setCurrentBgImage(newBgImage);
+            setNextBgImage('');
+            setBgTransitioning(false);
+          }, 500); // Match card animation duration
+        };
+        img.onerror = () => {
+          // Fallback to gradient if image fails
+          const fallbackBg = 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)';
+          setNextBgImage(fallbackBg);
+          setBgTransitioning(true);
+          
+          setTimeout(() => {
+            setCurrentBgImage(fallbackBg);
+            setNextBgImage('');
+            setBgTransitioning(false);
+          }, 500); // Match card animation duration
+        };
+        img.src = newBgUrl;
+      } else {
+        // It's a gradient, no need to preload
+        setNextBgImage(newBgImage);
+        setBgTransitioning(true);
+        
+        setTimeout(() => {
+          setCurrentBgImage(newBgImage);
+          setNextBgImage('');
+          setBgTransitioning(false);
+        }, 500); // Match card animation duration
+      }
+    };
+
+    if (delay > 0) {
+      setTimeout(startBackgroundTransition, delay);
+    } else {
+      startBackgroundTransition();
+    }
+  };
+
+  // Initialize background on first load or when not scrolling
+  useEffect(() => {
+    if (!isScrolling) {
+      updateBackgroundImage(currentRelease?.thumb);
+    }
+  }, [currentRelease?.thumb, currentBgImage]);
+
   // Prevent page scrolling on mobile
   useEffect(() => {
     const preventScroll = (e: TouchEvent) => {
@@ -161,7 +237,14 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
     
     if (direction === 'down' && currentReleaseIndex < releasesWithTracks.length - 1) {
       setSlideDirection(direction);
-      setCurrentReleaseIndex(prev => Math.min(prev + 1, releasesWithTracks.length - 1));
+      const newIndex = Math.min(currentReleaseIndex + 1, releasesWithTracks.length - 1);
+      setCurrentReleaseIndex(newIndex);
+      
+      // Trigger background transition with delay to sync with card animation
+      const newRelease = releasesWithTracks[newIndex];
+      if (newRelease) {
+        updateBackgroundImage(newRelease.thumb, 50); // Small delay to sync with card animation
+      }
       
       // Reset animation state after transition
       setTimeout(() => {
@@ -171,7 +254,14 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
       
     } else if (direction === 'up' && currentReleaseIndex > 0) {
       setSlideDirection(direction);
-      setCurrentReleaseIndex(prev => Math.max(prev - 1, 0));
+      const newIndex = Math.max(currentReleaseIndex - 1, 0);
+      setCurrentReleaseIndex(newIndex);
+      
+      // Trigger background transition with delay to sync with card animation
+      const newRelease = releasesWithTracks[newIndex];
+      if (newRelease) {
+        updateBackgroundImage(newRelease.thumb, 50); // Small delay to sync with card animation
+      }
       
       // Reset animation state after transition
       setTimeout(() => {
@@ -245,11 +335,17 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentReleaseIndex, currentTrackIndex, releasesWithTracks.length]);
 
-  // Mouse wheel navigation for both releases and tracks
+  // Mouse wheel navigation for mobile only (desktop handles it directly on the record column)
   useEffect(() => {
     let lastWheelTime = 0;
     
     const handleWheel = (e: WheelEvent) => {
+      // Only handle wheel events on mobile container
+      const target = e.target as HTMLElement;
+      if (!target.closest('#mobile-feed-container')) {
+        return;
+      }
+      
       e.preventDefault();
       
       const now = Date.now();
@@ -363,16 +459,34 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Background Image */}
-        <div 
-          id="mobile-background-image"
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: currentRelease.thumb ? `url(${currentRelease.thumb})` : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
-            filter: 'blur(20px) brightness(0.3)',
-            transform: 'scale(1.1)'
-          }}
-        />
+        {/* Background Images with Crossfade */}
+        <div className="absolute inset-0">
+          {/* Current Background */}
+          <div 
+            id="mobile-background-current"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500 ease-in-out"
+            style={{
+              backgroundImage: currentBgImage,
+              filter: 'blur(20px) brightness(0.3)',
+              transform: 'scale(1.1)',
+              opacity: bgTransitioning ? 0 : 1
+            }}
+          />
+          {/* Next Background (for transitions) */}
+          {nextBgImage && (
+            <div 
+              id="mobile-background-next"
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500 ease-in-out"
+              style={{
+                backgroundImage: nextBgImage,
+                filter: 'blur(20px) brightness(0.3)',
+                transform: 'scale(1.1)',
+                opacity: bgTransitioning ? 1 : 0,
+                zIndex: bgTransitioning ? 1 : 0
+              }}
+            />
+          )}
+        </div>
         
         {/* Main Content */}
         <div id="mobile-main-content" className="relative z-10 h-full flex flex-col">
@@ -643,16 +757,34 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
 
       {/* Desktop 3-Column Layout */}
       <div id="desktop-feed-container" className="hidden md:flex h-screen bg-black overflow-hidden relative">
-        {/* Background Image for Desktop */}
-        <div 
-          id="desktop-background-image"
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat overflow-hidden"
-          style={{
-            backgroundImage: currentRelease.thumb ? `url(${currentRelease.thumb})` : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
-            filter: 'blur(20px) brightness(0.3)',
-            transform: 'scale(1.05)'
-          }}
-        />
+        {/* Background Images with Crossfade for Desktop */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Current Background */}
+          <div 
+            id="desktop-background-current"
+            className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500 ease-in-out"
+            style={{
+              backgroundImage: currentBgImage,
+              filter: 'blur(20px) brightness(0.3)',
+              transform: 'scale(1.05)',
+              opacity: bgTransitioning ? 0 : 1
+            }}
+          />
+          {/* Next Background (for transitions) */}
+          {nextBgImage && (
+            <div 
+              id="desktop-background-next"
+              className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-500 ease-in-out"
+              style={{
+                backgroundImage: nextBgImage,
+                filter: 'blur(20px) brightness(0.3)',
+                transform: 'scale(1.05)',
+                opacity: bgTransitioning ? 1 : 0,
+                zIndex: bgTransitioning ? 1 : 0
+              }}
+            />
+          )}
+        </div>
         
         {/* Left Column: Search Menu */}
         <div id="desktop-filters-column" className="w-80 bg-black/80 backdrop-blur-md shadow-lg p-6 overflow-y-auto relative z-10">
@@ -788,10 +920,46 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
           </div>
         </div>
 
-        {/* Middle Column: Record Card */}
-        <div id="desktop-record-column" className="flex-1 flex items-start justify-center p-8 relative z-10">
+        {/* Middle Column: Record Card with scroll handling */}
+        <div 
+          id="desktop-record-column" 
+          className="flex-1 flex items-start justify-center p-8 relative z-10"
+          onWheel={(e) => {
+            e.preventDefault();
+            
+            // Throttle wheel events for consistent behavior
+            const now = Date.now();
+            if (now - (window as any).lastDesktopWheelTime < 100) return;
+            if (isScrolling) return;
+            (window as any).lastDesktopWheelTime = now;
+            
+            const deltaY = e.deltaY;
+            const deltaX = e.deltaX;
+            
+            // Check for horizontal scroll (tracks) first
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+              if (deltaX > 0) {
+                handleTrackScroll('right');
+              } else {
+                handleTrackScroll('left');
+              }
+            }
+            // Otherwise, vertical scrolling (releases)
+            else if (Math.abs(deltaY) > 10) {
+              if (deltaY > 0) {
+                handleScroll('down');
+              } else {
+                handleScroll('up');
+              }
+            }
+          }}
+        >
           <div className="flex items-center gap-4">
-            <div className="flex flex-col items-center">
+            <div className={`flex flex-col items-center transition-all duration-500 ease-out ${
+              slideDirection === 'up' ? 'animate-fade-up' : 
+              slideDirection === 'down' ? 'animate-fade-down' :
+              ''
+            }`}>
               <div className="text-center mb-2">
                 <div id="desktop-track-counter" className="text-xs text-white/60">
                   {currentReleaseIndex + 1} / {releasesWithTracks.length}
