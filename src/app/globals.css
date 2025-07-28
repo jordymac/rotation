@@ -126,3 +126,20 @@ body {
 .animate-bounce-right {
   animation: bounce-right 0.2s ease-out;
 }
+
+/* Simple truncate with ellipsis - no animation for now */
+.text-marquee {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* Hide scrollbars */
+.hide-scrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}

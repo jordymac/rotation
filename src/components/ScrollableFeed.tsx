@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { ShoppingCartIcon, EyeIcon } from '@heroicons/react/24/outline';
-import { DiscogsRelease } from '@/utils/discogs';
+import { DiscogsRelease, DiscogsTrack } from '@/utils/discogs';
 import RecordCard from './RecordCard';
 
 interface ScrollableFeedProps {
@@ -14,11 +14,7 @@ interface ScrollableFeedProps {
 }
 
 interface ReleaseWithTracks extends DiscogsRelease {
-  tracks?: {
-    title: string;
-    duration: string;
-    position: string;
-  }[];
+  tracks?: DiscogsTrack[];
 }
 
 export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedProps) {
@@ -39,13 +35,7 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
     year: ''
   });
 
-  // Mock tracks for demo - in real app, this would come from Discogs API
-  const mockTracks = [
-    { title: "Track 1", duration: "3:45", position: "A1" },
-    { title: "Track 2", duration: "4:12", position: "A2" },
-    { title: "Track 3", duration: "5:23", position: "B1" },
-    { title: "Track 4", duration: "3:58", position: "B2" },
-  ];
+  // No more mock tracks - using real Discogs data
 
   // Filter releases based on current filters
   const filteredReleases = releases.filter(release => {
@@ -87,7 +77,7 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
 
   const releasesWithTracks: ReleaseWithTracks[] = filteredReleases.map(release => ({
     ...release,
-    tracks: mockTracks
+    tracks: release.tracks || []
   }));
 
   // Debug logging
@@ -337,6 +327,7 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
     <>
       {/* Mobile Layout */}
       <div 
+        id="mobile-feed-container"
         ref={containerRef}
         className="md:hidden h-screen w-full bg-black text-white overflow-hidden relative"
         onTouchStart={handleTouchStart}
@@ -345,6 +336,7 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
       >
         {/* Background Image */}
         <div 
+          id="mobile-background-image"
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: currentRelease.thumb ? `url(${currentRelease.thumb})` : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
@@ -354,9 +346,9 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
         />
         
         {/* Main Content */}
-        <div className="relative z-10 h-full flex flex-col">
+        <div id="mobile-main-content" className="relative z-10 h-full flex flex-col">
           {/* Header */}
-          <div className="p-6 flex justify-between items-start">
+          <div id="mobile-header" className="p-6 flex justify-between items-start">
             <div className="flex items-center gap-4">
               {/* Hamburger Menu Button */}
               <button
@@ -372,7 +364,7 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
               
               {storeInfo && (
                 <span className="bg-white/20 px-3 py-1 rounded-full text-sm opacity-75">
-                  {storeInfo.username}
+                  {storeInfo.id === 'general-feed' ? 'Curated Feed' : storeInfo.username}
                 </span>
               )}
             </div>
@@ -391,200 +383,94 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
               </div>
               
               {/* Track Counter */}
-              <div className="text-sm opacity-75">
+              <div id="mobile-track-counter" className="text-sm opacity-75">
                 {currentReleaseIndex + 1} / {releasesWithTracks.length}
               </div>
             </div>
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 flex items-center justify-center p-6 overflow-hidden">
-            <div className={`max-w-sm w-full text-center transition-all duration-500 ease-out ${
+          <div id="mobile-content-area" className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-hidden min-h-0">
+            <div className={`w-full max-w-xs sm:max-w-sm text-center transition-all duration-500 ease-out flex flex-col h-full max-h-full ${
               slideDirection === 'up' ? 'animate-slide-up' : 
               slideDirection === 'down' ? 'animate-slide-down' :
               ''
             }`}>
-              {/* Album Art */}
-              <div className="mb-6 relative">
-                {currentRelease.thumb ? (
-                  <img
-                    src={currentRelease.thumb}
-                    alt={`${currentRelease.artist} - ${currentRelease.title}`}
-                    className="w-80 h-80 mx-auto rounded-lg shadow-2xl object-cover"
-                    onError={(e) => {
-                      const target = e.target as HTMLImageElement;
-                      target.style.display = 'none';
-                      const placeholder = target.nextElementSibling as HTMLElement;
-                      if (placeholder) placeholder.style.display = 'flex';
-                    }}
-                  />
-                ) : null}
-                <div 
-                  className={`w-80 h-80 mx-auto rounded-lg shadow-2xl bg-gray-600 flex items-center justify-center ${
-                    currentRelease.thumb ? 'hidden' : 'flex'
-                  }`}
-                >
-                  <div className="text-center text-gray-300">
-                    <div className="text-4xl mb-2">🎵</div>
-                    <div className="text-sm">Album Cover</div>
-                    <div className="text-xs opacity-75">Preview Not Available</div>
-                  </div>
-                </div>
-                
-                {/* Track navigation dots - overlaid on album art */}
-                {currentRelease.tracks && currentRelease.tracks.length > 0 && (
-                  <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2">
-                    <div className="bg-black bg-opacity-10 rounded-full px-3 py-2 backdrop-blur-sm">
-                      <div className="flex justify-center gap-2">
-                        {currentRelease.tracks.map((_, index) => (
-                          <button
-                            key={index}
-                            onClick={() => !isScrolling && setCurrentTrackIndex(index)}
-                            className={`w-2 h-2 rounded-full transition-all duration-200 ${
-                              index === currentTrackIndex 
-                                ? 'bg-white scale-125' 
-                                : 'bg-white/60 hover:bg-white/80'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Track Info */}
-              {currentRelease.tracks && currentRelease.tracks.length > 0 && (
-                <div className="mb-4 overflow-hidden">
-                  <div className={`text-lg text-gray-400 mb-3 flex justify-between items-center w-80 mx-auto px-4 transition-all duration-300 ease-out ${
-                    slideDirection === 'left' ? 'animate-slide-left' :
-                    slideDirection === 'right' ? 'animate-slide-right' :
-                    ''
-                  }`}>
-                    <span className="text-left font-semibold text-white truncate pr-4 flex-1 min-w-0">{currentRelease.tracks[currentTrackIndex].title}</span>
-                    <div className="text-right flex-shrink-0 text-sm">
-                      <span>{currentRelease.tracks[currentTrackIndex].position}</span>
-                      <span className="mx-1">•</span>
-                      <span>{currentRelease.tracks[currentTrackIndex].duration}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Release Info */}
-              <div className="mb-6">
-                <h1 className="text-xl text-gray-300 mb-3">
-                  {currentRelease.artist} • {currentRelease.title}
-                </h1>
-                <div className="text-sm text-gray-400 space-x-4 mb-2">
-                  <span>{currentRelease.label}</span>
-                  <span>•</span>
-                  <span>{currentRelease.year}</span>
-                  {currentRelease.price && (
-                    <>
-                      <span>•</span>
-                      <span className="text-green-400 font-semibold">{currentRelease.price}</span>
-                    </>
-                  )}
-                </div>
-                {currentRelease.genre && currentRelease.genre.length > 0 && (
-                  <div className="flex flex-wrap justify-center gap-1">
-                    {currentRelease.genre.slice(0, 3).map((genre, index) => (
-                      <span
-                        key={index}
-                        className="bg-white/10 text-gray-300 px-2 py-1 rounded-full text-xs"
-                      >
-                        {genre}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Audio Player Placeholder */}
-              <div className="mb-2">
-                <div className={`bg-white/10 rounded-lg p-4 backdrop-blur-sm transition-opacity duration-300 ease-out ${
-                  slideDirection === 'left' || slideDirection === 'right' ? 'opacity-50' : 'opacity-100'
-                }`}>
-                  <div className="flex items-center gap-4">
-                    <button className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors">
-                      ▶
-                    </button>
-                    <div className="flex-1 h-1 bg-white/20 rounded-full">
-                      <div className="h-full w-1/3 bg-white rounded-full"></div>
-                    </div>
-                    <span className="text-sm text-gray-300">
-                      {currentRelease.tracks && currentRelease.tracks[currentTrackIndex] 
-                        ? currentRelease.tracks[currentTrackIndex].duration 
-                        : "3:45"}
-                    </span>
-                  </div>
-                </div>
+              {/* Use RecordCard for consistent layout */}
+              <div className="flex-1 overflow-y-auto min-h-0 hide-scrollbar flex flex-col items-center justify-center relative">
+                <RecordCard 
+                  release={currentRelease}
+                  currentTrack={currentRelease.tracks && currentRelease.tracks[currentTrackIndex] 
+                    ? currentRelease.tracks[currentTrackIndex] 
+                    : undefined}
+                  showTrackInfo={true}
+                  tracks={currentRelease.tracks || []}
+                  currentTrackIndex={currentTrackIndex}
+                  onTrackChange={setCurrentTrackIndex}
+                  isScrolling={isScrolling}
+                />
               </div>
             </div>
           </div>
 
-          {/* Bottom Actions */}
-          <div className="px-6 pb-6">
-            <div className="space-y-3">
-              {/* First Row: Wishlist and Add to Crate */}
-              <div className="flex gap-4">
-                <button
-                  onClick={async () => {
-                    try {
-                      const response = await fetch('/api/wishlist', {
-                        method: 'POST',
-                        headers: {
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                          releaseId: currentRelease.id,
-                          userId: 'temp_user', // TODO: Get from auth context
-                        }),
-                      });
+          {/* Bottom Actions - Responsive Layout */}
+          <div id="mobile-bottom-actions" className="px-4 sm:px-6 pb-4 sm:pb-6 flex-shrink-0">
+            {/* Single Row Layout for All Screens */}
+            <div className="flex gap-2">
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/wishlist', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        releaseId: currentRelease.id,
+                        userId: 'temp_user', // TODO: Get from auth context
+                      }),
+                    });
 
-                      if (response.ok) {
-                        const result = await response.json();
-                        alert(`✓ ${result.message}`);
-                      } else {
-                        alert('Failed to add to wishlist');
-                      }
-                    } catch (error) {
-                      console.error('Wishlist error:', error);
-                      alert('Error adding to wishlist');
+                    if (response.ok) {
+                      const result = await response.json();
+                      alert(`✓ ${result.message}`);
+                    } else {
+                      alert('Failed to add to wishlist');
                     }
-                  }}
-                  className="flex-1 bg-white/20 hover:bg-white/30 rounded-lg py-3 px-6 font-semibold transition-colors flex items-center justify-center gap-2"
-                  title="Add to Wishlist"
-                >
-                  <EyeIcon className="w-5 h-5 text-white" />
-                  <span className="text-white">Wishlist</span>
-                </button>
-                <button 
-                  onClick={() => setCartCount(prev => prev + 1)}
-                  className="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                >
-                  Add to Crate
-                </button>
-              </div>
-              
-              {/* Second Row: Buy Now */}
-              <div>
-                <a
-                  href={`https://www.discogs.com${currentRelease.uri}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block w-full bg-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-green-700 transition-colors text-center"
-                >
-                  Buy Now
-                </a>
-              </div>
+                  } catch (error) {
+                    console.error('Wishlist error:', error);
+                    alert('Error adding to wishlist');
+                  }
+                }}
+                className="p-3 sm:px-6 sm:py-3 bg-white/20 hover:bg-white/30 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2"
+                title="Add to Wishlist"
+              >
+                <EyeIcon className="w-5 h-5 text-white" />
+                <span className="hidden sm:inline text-white">Wishlist</span>
+              </button>
+              <button 
+                onClick={() => setCartCount(prev => prev + 1)}
+                className="p-3 sm:px-6 sm:py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                title="Add to Crate"
+              >
+                <ShoppingCartIcon className="w-5 h-5" />
+                <span className="hidden sm:inline">Crate</span>
+              </button>
+              <a
+                href={`https://www.discogs.com${currentRelease.uri}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-1 bg-green-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-green-700 transition-colors text-center"
+              >
+                Buy Now
+              </a>
             </div>
           </div>
         </div>
 
         {/* Filter Panel - Full width overlay */}
         <div 
+          id="mobile-filter-panel"
           className={`fixed inset-0 bg-black/95 backdrop-blur-md transform transition-transform duration-300 ease-in-out z-50 ${
             showFilters ? 'translate-x-0' : '-translate-x-full'
           }`}
@@ -605,7 +491,7 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
               {/* Go Back to Stores */}
               <div className="pb-4 border-b border-white/20">
                 <button
-                  onClick={() => window.location.href = '/'}
+                  onClick={() => window.location.href = '/stores'}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white font-medium"
                 >
                   <span className="text-xl">←</span>
@@ -727,9 +613,10 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
       </div>
 
       {/* Desktop 3-Column Layout */}
-      <div className="hidden md:flex h-screen bg-black">
+      <div id="desktop-feed-container" className="hidden md:flex h-screen bg-black">
         {/* Background Image for Desktop */}
         <div 
+          id="desktop-background-image"
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
             backgroundImage: currentRelease.thumb ? `url(${currentRelease.thumb})` : 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
@@ -739,12 +626,12 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
         />
         
         {/* Left Column: Search Menu */}
-        <div className="w-80 bg-black/80 backdrop-blur-md shadow-lg p-6 overflow-y-auto relative z-10">
+        <div id="desktop-filters-column" className="w-80 bg-black/80 backdrop-blur-md shadow-lg p-6 overflow-y-auto relative z-10">
           <div className="mb-6">
             <h2 className="text-2xl font-bold text-white mb-2">Filters</h2>
             {storeInfo && (
               <span className="bg-white/20 px-3 py-1 rounded-full text-sm text-white/80">
-                {storeInfo.username}
+                {storeInfo.id === 'general-feed' ? 'Curated Feed' : storeInfo.username}
               </span>
             )}
           </div>
@@ -753,7 +640,7 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
             {/* Go Back to Stores */}
             <div className="pb-4 border-b border-white/20">
               <button
-                onClick={() => window.location.href = '/'}
+                onClick={() => window.location.href = '/stores'}
                 className="w-full flex items-center gap-3 px-4 py-3 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-white font-medium"
               >
                 <span className="text-xl">←</span>
@@ -873,11 +760,11 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
         </div>
 
         {/* Middle Column: Record Card */}
-        <div className="flex-1 flex items-start justify-center p-8 relative z-10">
+        <div id="desktop-record-column" className="flex-1 flex items-start justify-center p-8 relative z-10">
           <div className="flex items-center gap-4">
             <div className="flex flex-col items-center">
               <div className="text-center mb-2">
-                <div className="text-xs text-white/60">
+                <div id="desktop-track-counter" className="text-xs text-white/60">
                   {currentReleaseIndex + 1} / {releasesWithTracks.length}
                 </div>
               </div>
@@ -886,6 +773,10 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
                 viewMode="grid"
                 currentTrack={currentRelease.tracks && currentRelease.tracks.length > 0 ? currentRelease.tracks[currentTrackIndex] : undefined}
                 showTrackInfo={true}
+                tracks={currentRelease.tracks || []}
+                currentTrackIndex={currentTrackIndex}
+                onTrackChange={setCurrentTrackIndex}
+                isScrolling={isScrolling}
               />
             </div>
             
@@ -916,7 +807,7 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
         </div>
 
         {/* Right Column: Actions */}
-        <div className="w-80 bg-black/80 backdrop-blur-md shadow-lg p-6 relative z-10">
+        <div id="desktop-actions-column" className="w-80 bg-black/80 backdrop-blur-md shadow-lg p-6 relative z-10">
           <div className="space-y-6">
             <h2 className="text-2xl font-bold text-white">Actions</h2>
             

@@ -56,12 +56,12 @@ function FeedContent() {
         setReleases(data.results || []);
         setStoreInfo(data.store);
       } else {
-        // Use default test store to show demo content
-        const testStoreId = 'demo-store';
-        const inventoryResponse = await fetch(`/api/stores/${testStoreId}/inventory`);
+        // Use general feed as default
+        const generalFeedId = 'general-feed';
+        const inventoryResponse = await fetch(`/api/stores/${generalFeedId}/inventory`);
         if (inventoryResponse.ok) {
           const inventoryData: StoreInventoryResponse = await inventoryResponse.json();
-          console.log('Feed data loaded (demo store):', {
+          console.log('Feed data loaded (general feed):', {
             resultsLength: inventoryData.results?.length,
             results: inventoryData.results,
             store: inventoryData.store
@@ -69,7 +69,7 @@ function FeedContent() {
           setReleases(inventoryData.results || []);
           setStoreInfo(inventoryData.store);
         } else {
-          throw new Error('Failed to load demo store inventory');
+          throw new Error('Failed to load general feed');
         }
       }
     } catch (err) {

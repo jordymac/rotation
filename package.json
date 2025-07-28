@@ -12,6 +12,7 @@
     "@clerk/nextjs": "^6.26.0",
     "@heroicons/react": "^2.2.0",
     "disconnect": "^1.2.2",
+    "dotenv": "^17.2.1",
     "next": "15.4.2",
     "react": "19.1.0",
     "react-dom": "19.1.0"

@@ -1,5 +1,53 @@
 import { DiscogsRelease } from '@/utils/discogs';
 import { EyeIcon } from '@heroicons/react/24/outline';
+import { useState, useEffect, useRef } from 'react';
+
+// Country code to flag emoji mapping
+const countryToFlag = (country: string): string => {
+  const countryMap: { [key: string]: string } = {
+    'US': '🇺🇸',
+    'USA': '🇺🇸',
+    'UK': '🇬🇧',
+    'United Kingdom': '🇬🇧',
+    'Canada': '🇨🇦',
+    'Germany': '🇩🇪',
+    'France': '🇫🇷',
+    'Japan': '🇯🇵',
+    'Australia': '🇦🇺',
+    'Netherlands': '🇳🇱',
+    'Sweden': '🇸🇪',
+    'Norway': '🇳🇴',
+    'Denmark': '🇩🇰',
+    'Italy': '🇮🇹',
+    'Spain': '🇪🇸',
+    'Brazil': '🇧🇷',
+    'Mexico': '🇲🇽',
+    'Argentina': '🇦🇷',
+    'Chile': '🇨🇱',
+    'Colombia': '🇨🇴',
+    'Russia': '🇷🇺',
+    'Poland': '🇵🇱',
+    'Czech Republic': '🇨🇿',
+    'Hungary': '🇭🇺',
+    'Austria': '🇦🇹',
+    'Switzerland': '🇨🇭',
+    'Belgium': '🇧🇪',
+    'Finland': '🇫🇮',
+    'Ireland': '🇮🇪',
+    'South Korea': '🇰🇷',
+    'China': '🇨🇳',
+    'India': '🇮🇳',
+    'Israel': '🇮🇱',
+    'South Africa': '🇿🇦',
+    'New Zealand': '🇳🇿',
+    'Portugal': '🇵🇹',
+    'Greece': '🇬🇷',
+    'Turkey': '🇹🇷',
+    'Iceland': '🇮🇸'
+  };
+  
+  return countryMap[country] || '🌍';
+};
 
 interface RecordCardProps {
   release: DiscogsRelease;
@@ -12,9 +60,17 @@ interface RecordCardProps {
     position: string;
   };
   showTrackInfo?: boolean;
+  tracks?: Array<{
+    title: string;
+    duration: string;
+    position: string;
+  }>;
+  currentTrackIndex?: number;
+  onTrackChange?: (index: number) => void;
+  isScrolling?: boolean;
 }
 
-export default function RecordCard({ release, viewMode = 'grid', isSellerMode = false, onManageItem, currentTrack, showTrackInfo = false }: RecordCardProps) {
+export default function RecordCard({ release, viewMode = 'grid', isSellerMode = false, onManageItem, currentTrack, showTrackInfo = false, tracks, currentTrackIndex = 0, onTrackChange, isScrolling = false }: RecordCardProps) {
   if (viewMode === 'list') {
     return (
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow">
@@ -168,10 +224,11 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
   }
   
   return (
-    <div className="w-80 h-[600px] mx-auto flex flex-col">
-      <div className="aspect-square relative flex-shrink-0 mb-4">
+    <div id="record-card" className="w-full max-w-72 sm:max-w-80 mx-auto flex flex-col h-full max-h-full">
+      <div id="album-artwork-container" className="relative flex-shrink-0 mb-3 sm:mb-4 mx-auto aspect-square max-h-48 sm:max-h-64 max-w-48 sm:max-w-64">
         {release.thumb ? (
           <img
+            id="album-artwork-image"
             src={release.thumb}
             alt={`${release.artist} - ${release.title}`}
             className="w-full h-full object-cover rounded-lg shadow-2xl"
@@ -184,6 +241,7 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
           />
         ) : null}
         <div 
+          id="album-artwork-placeholder"
           className={`w-full h-full bg-gray-400 flex items-center justify-center rounded-lg shadow-2xl ${
             release.thumb ? 'hidden' : 'flex'
           }`}
@@ -193,109 +251,207 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
             <div className="text-xs">No Image</div>
           </div>
         </div>
+        
+        {/* Track navigation dots - overlaid on image */}
+        {tracks && tracks.length > 1 && (
+          <div id="track-navigation-dots" className="absolute bottom-3 left-1/2 transform -translate-x-1/2">
+            <div className="bg-black/20 rounded-full px-3 py-2 backdrop-blur-sm">
+              <div className="flex justify-center gap-2">
+                {tracks.map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => !isScrolling && onTrackChange?.(index)}
+                    className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                      index === currentTrackIndex 
+                        ? 'bg-white scale-125' 
+                        : 'bg-white/60 hover:bg-white/80'
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
-      <div className="flex-1 flex flex-col px-2">
+      <div id="record-details" className="flex-1 flex flex-col px-2">
         {/* 1. Track Name | Track # + Length - only show on desktop when showTrackInfo is true */}
         {showTrackInfo && currentTrack ? (
-          <div className="mb-3">
-            <div className="flex justify-between items-center">
-              <div className="text-base font-semibold text-white truncate flex-1 mr-2">
+          <div id="current-track-info" className="mb-3">
+            <div className="flex justify-start items-center gap-4">
+              <div id="track-title" className="text-base font-semibold text-white truncate flex-1">
                 {currentTrack.title}
               </div>
-              <div className="text-sm text-white/80 flex-shrink-0">
+              <div id="track-position-duration" className="text-sm text-white/80 flex-shrink-0">
                 {currentTrack.position} • {currentTrack.duration}
               </div>
             </div>
           </div>
         ) : null}
         
-        {/* 2. Artist */}
-        <p className="text-lg font-medium text-white/90 mb-2 truncate">
-          {release.artist}
-        </p>
-        
-        {/* 3. Album */}
-        <h3 className="font-semibold text-xl text-white mb-3 overflow-hidden" style={{
-          display: '-webkit-box',
-          WebkitLineClamp: 2,
-          WebkitBoxOrient: 'vertical',
-          lineHeight: '1.25rem',
-          maxHeight: '2.5rem'
-        }}>
-          {release.title}
-        </h3>
-        
-        {/* 4. Label | Year */}
-        <div className="flex justify-between items-center text-sm text-white/70 mb-3">
-          <span className="truncate flex-1 mr-2">{release.label}</span>
-          <span className="flex-shrink-0">{release.year}</span>
+        {/* 2. Artist & Album */}
+        <div id="artist-album-section" className="mb-3">
+          <p id="artist-name" className="text-xl font-medium text-white/90 truncate mb-1">
+            {release.artist}
+          </p>
+          <h3 id="album-title" className="text-lg text-white truncate">
+            {release.title}
+          </h3>
         </div>
         
-        {/* 5. Genres */}
-        <div className="h-8 mb-4 flex items-start">
-          {release.genre && release.genre.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {release.genre.slice(0, 3).map((genre, index) => (
-                <span
-                  key={index}
-                  className="bg-white/20 text-white px-2 py-1 rounded-full text-xs"
-                >
-                  {genre}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <div></div>
+        {/* 3. Label | Year | Country */}
+        <div id="label-year-section" className="flex items-center gap-2 text-sm text-white/70 mb-3">
+          <span id="record-label" className="truncate flex-1">{release.label}</span>
+          <span className="text-white/50 flex-shrink-0">|</span>
+          <span id="release-year" className="flex-shrink-0">{release.year}</span>
+          {release.country && (
+            <>
+              <span className="text-white/50 flex-shrink-0">|</span>
+              <span id="country-flag" className="flex-shrink-0" title={release.country}>
+                {countryToFlag(release.country)}
+              </span>
+            </>
           )}
         </div>
         
-        {/* 6. Audio Play and Timeline Scrub */}
-        <div className="mb-4">
+        {/* 4. Genres & Styles */}
+        <div id="genres-styles-section">
+          <GenresAndStyles genres={release.genre || []} styles={release.style || []} />
+        </div>
+        
+        {/* 5. Audio Play and Timeline Scrub */}
+        <div id="audio-player-section" className="mb-4">
           <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
             <div className="flex items-center gap-3 mb-2">
-              <button className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors">
+              <button id="play-button" className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors">
                 <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M8 5v14l11-7z"/>
                 </svg>
               </button>
               <div className="flex-1">
-                <div className="flex justify-between text-xs text-white/60 mb-1">
-                  <span>0:00</span>
-                  <span>{currentTrack?.duration || "3:45"}</span>
+                <div id="track-timeline-labels" className="flex justify-between text-xs text-white/60 mb-1">
+                  <span id="current-time">0:00</span>
+                  <span id="total-duration">{currentTrack?.duration || "3:45"}</span>
                 </div>
-                <div className="w-full h-2 bg-white/20 rounded-full cursor-pointer">
-                  <div className="h-full w-1/3 bg-white rounded-full"></div>
+                <div id="track-timeline" className="w-full h-2 bg-white/20 rounded-full cursor-pointer">
+                  <div id="track-progress" className="h-full w-1/3 bg-white rounded-full"></div>
                 </div>
               </div>
             </div>
           </div>
         </div>
         
-        {/* Price and Condition - moved to bottom */}
-        <div className="mt-auto">
-          {release.price ? (
-            <div>
-              <span className="text-lg font-bold text-green-400">
-                {release.price}
-              </span>
+        {/* Price and Condition - same row */}
+        <div id="price-condition-section" className="mt-auto">
+          {release.price || release.condition ? (
+            <div className="flex items-center justify-between gap-2">
+              {/* Condition - left side, 50% width, truncated */}
               {release.condition && (
-                <div className="text-sm text-white/60 mt-1 overflow-hidden" style={{
-                  display: '-webkit-box',
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: 'vertical',
-                  lineHeight: '1.25rem',
-                  maxHeight: '2.5rem'
-                }}>
+                <div id="record-condition" className="flex-1 max-w-[50%] text-sm text-white/60 truncate">
                   {release.condition}
                   {release.sleeve_condition && ` / ${release.sleeve_condition}`}
                 </div>
+              )}
+              {/* Price - right side */}
+              {release.price && (
+                <span id="record-price" className="text-lg font-bold text-green-400 flex-shrink-0 text-right">
+                  {release.price}
+                </span>
               )}
             </div>
           ) : (
             <div className="h-6"></div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+function GenresAndStyles({ genres, styles }: { genres: string[], styles: string[] }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  
+  // Combine genres and styles with their types
+  const allTags = [
+    ...genres.map(genre => ({ text: genre, type: 'genre' as const })),
+    ...styles.map(style => ({ text: style, type: 'style' as const }))
+  ];
+  
+  // Show first 3 tags, rest go into tooltip
+  const visibleTags = allTags.slice(0, 3);
+  const hiddenTags = allTags.slice(3);
+  
+  // Close tooltip when clicking outside (for mobile)
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (tooltipRef.current && !tooltipRef.current.contains(event.target as Node)) {
+        setShowTooltip(false);
+      }
+    }
+    
+    if (showTooltip) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showTooltip]);
+  
+  if (allTags.length === 0) {
+    return <div id="genres-styles-empty" className="h-8 mb-4"></div>;
+  }
+  
+  return (
+    <div id="genres-styles-container" className="h-8 mb-4 flex items-start relative">
+      <div id="genres-styles-tags" className="flex flex-wrap gap-1">
+        {visibleTags.map((tag, index) => (
+          <span
+            key={`${tag.type}-${index}`}
+            id={`${tag.type}-tag-${index}`}
+            className={`px-2 py-1 rounded-full text-xs ${
+              tag.type === 'genre' 
+                ? 'bg-blue-500/20 text-blue-200' 
+                : 'bg-purple-500/20 text-purple-200'
+            }`}
+          >
+            {tag.text}
+          </span>
+        ))}
+        
+        {hiddenTags.length > 0 && (
+          <div id="overflow-tags-container" className="relative" ref={tooltipRef}>
+            <button
+              id="overflow-tags-button"
+              className="bg-white/20 text-white/80 px-2 py-1 rounded-full text-xs hover:bg-white/30 transition-colors"
+              onMouseEnter={() => setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}
+              onClick={() => setShowTooltip(!showTooltip)}
+            >
+              +{hiddenTags.length}
+            </button>
+            
+            {showTooltip && (
+              <div id="overflow-tags-tooltip" className="absolute bottom-8 left-0 z-20 bg-black/90 backdrop-blur-sm rounded-lg p-3 min-w-48 max-w-64 border border-white/20">
+                <div className="flex flex-wrap gap-1">
+                  {hiddenTags.map((tag, index) => (
+                    <span
+                      key={`tooltip-${tag.type}-${index}`}
+                      id={`tooltip-${tag.type}-tag-${index}`}
+                      className={`px-2 py-1 rounded-full text-xs ${
+                        tag.type === 'genre' 
+                          ? 'bg-blue-500/20 text-blue-200' 
+                          : 'bg-purple-500/20 text-purple-200'
+                      }`}
+                    >
+                      {tag.text}
+                    </span>
+                  ))}
+                </div>
+                {/* Tooltip arrow */}
+                <div id="tooltip-arrow" className="absolute -bottom-1 left-3 w-2 h-2 bg-black/90 rotate-45 border-r border-b border-white/20"></div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

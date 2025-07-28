@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { adminStores } from '@/lib/storage';
+import { createDiscogsService } from '@/lib/discogs-service';
 
 const DISCOGS_API_BASE = 'https://api.discogs.com';
 
@@ -10,106 +11,138 @@ export async function GET(
   try {
     const { storeId } = params;
     
-    // Handle demo store case
-    if (storeId === 'demo-store') {
-      const demoStore = {
-        id: 'demo-store',
-        username: 'Demo Record Store'
+    // Handle general feed case - now uses real Discogs data
+    if (storeId === 'general-feed') {
+      const generalFeed = {
+        id: 'general-feed',
+        username: 'Rotation Feed'
       };
       
-      // Use mock data for demo store
-      const mockListings = [
-        {
-          id: "249504",
-          release: {
-            id: 249504,
-            title: "Never, Neverland",
-            artist: "Annihilator",
-            year: 1990,
-            label: ["Roadrunner Records"],
-            format: "Vinyl",
-            genre: ["Metal", "Thrash Metal"],
-            style: ["Heavy Metal", "Thrash"],
-            thumb: "https://i.discogs.com/r/jpeg/400x400/1990/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy1SLTI0OTUw/NC0xMjQ0MzI2MzAy/LmpwZWc.jpeg",
-            resource_url: "https://api.discogs.com/releases/249504"
-          },
-          price: { currency: "USD", value: 25.99 },
-          condition: "Near Mint (NM or M-)",
-          sleeve_condition: "Very Good Plus (VG+)",
-          comments: "Original pressing in excellent condition"
-        },
-        {
-          id: "1234567",
-          release: {
-            id: 1234567,
-            title: "Thriller",
-            artist: "Michael Jackson",
-            year: 1982,
-            label: ["Epic Records"],
-            format: "Vinyl",
-            genre: ["Pop", "R&B"],
-            style: ["Pop Rock", "Soul"],
-            thumb: "https://i.discogs.com/r/jpeg/400x400/1982/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTEyMzQ1/NjctMTIzNDU2Nzg5/MC5qcGVn.jpeg",
-            resource_url: "https://api.discogs.com/releases/1234567"
-          },
-          price: { currency: "USD", value: 45.00 },
-          condition: "Mint (M)",
-          sleeve_condition: "Mint (M)",
-          comments: "Sealed original pressing"
-        },
-        {
-          id: "987654",
-          release: {
-            id: 987654,
-            title: "Dark Side of the Moon",
-            artist: "Pink Floyd",
-            year: 1973,
-            label: ["Harvest Records"],
-            format: "Vinyl",
-            genre: ["Rock", "Progressive Rock"],
-            style: ["Psychedelic Rock", "Art Rock"],
-            thumb: "https://i.discogs.com/r/jpeg/400x400/1973/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTk4NzY1/NC0xMjM0NTY3ODkw/LmpwZWc.jpeg",
-            resource_url: "https://api.discogs.com/releases/987654"
-          },
-          price: { currency: "USD", value: 35.99 },
-          condition: "Very Good Plus (VG+)",
-          sleeve_condition: "Very Good (VG)",
-          comments: "Classic album, some light wear"
-        }
-      ];
+      try {
+        // Use DiscogsService to fetch real curated feed data
+        const discogsService = createDiscogsService();
+        const curatedData = await discogsService.getCuratedFeed(20);
+        
+        console.log('Curated feed data fetched:', {
+          listingsLength: curatedData.listings?.length,
+          pagination: curatedData.pagination
+        });
 
-      const transformedReleases = mockListings.map((item: any) => ({
-        id: item.release.id,
-        title: item.release.title,
-        artist: item.release.artist || 'Unknown Artist',
-        year: item.release.year,
-        label: Array.isArray(item.release.label) ? item.release.label[0] : (item.release.label || 'Unknown Label'),
-        genre: item.release.genre || [],
-        style: item.release.style || [],
-        thumb: item.release.thumb,
-        resource_url: item.release.resource_url,
-        uri: `/releases/${item.release.id}`,
-        price: item.price?.value ? `${item.price.currency} ${item.price.value}` : null,
-        condition: item.condition,
-        sleeve_condition: item.sleeve_condition,
-        comments: item.comments,
-        store: {
-          id: demoStore.id,
-          username: demoStore.username
-        }
-      }));
+        // Fetch full release details for first few items to get track data
+        const enhancedListings = await Promise.all(
+          (curatedData.listings || []).slice(0, 10).map(async (item: any) => {
+            try {
+              const discogsService = createDiscogsService();
+              const fullRelease = await discogsService.getRelease(item.release.id);
+              return {
+                ...item,
+                release: {
+                  ...item.release,
+                  tracklist: fullRelease.tracklist || [],
+                  genres: fullRelease.genres || [],
+                  styles: fullRelease.styles || []
+                }
+              };
+            } catch (error) {
+              console.error(`Error fetching release ${item.release.id}:`, error);
+              return item; // Return original item if fetch fails
+            }
+          })
+        );
 
-      return NextResponse.json({
-        results: transformedReleases,
-        pagination: {
-          page: 1,
-          pages: 1,
-          per_page: 50,
-          items: mockListings.length,
-          urls: {}
-        },
-        store: demoStore
-      });
+        const transformedReleases = enhancedListings.map((item: any) => ({
+          id: item.release.id,
+          title: item.release.title,
+          artist: item.release.artist || 'Unknown Artist',
+          year: item.release.year,
+          label: Array.isArray(item.release.label) ? item.release.label[0] : (item.release.label || 'Unknown Label'),
+          country: item.release.country,
+          genre: Array.isArray(item.release.genres) ? item.release.genres : (item.release.genres ? [item.release.genres] : (Array.isArray(item.release.genre) ? item.release.genre : (item.release.genre ? [item.release.genre] : []))),
+          style: Array.isArray(item.release.styles) ? item.release.styles : (item.release.styles ? [item.release.styles] : (Array.isArray(item.release.style) ? item.release.style : (item.release.style ? [item.release.style] : []))),
+          thumb: item.release.thumbnail || (item.release.images && item.release.images.length > 0 ? item.release.images[0].uri150 || item.release.images[0].uri : null),
+          resource_url: item.release.resource_url,
+          uri: `/releases/${item.release.id}`,
+          tracks: item.release.tracklist || [],
+          price: item.price?.value ? `${item.price.currency} ${item.price.value}` : null,
+          condition: item.condition,
+          sleeve_condition: item.sleeve_condition,
+          comments: item.comments,
+          store: {
+            id: generalFeed.id,
+            username: generalFeed.username
+          }
+        })) || [];
+
+        return NextResponse.json({
+          results: transformedReleases,
+          pagination: curatedData.pagination || {
+            page: 1,
+            pages: 1,
+            per_page: 20,
+            items: transformedReleases.length,
+            urls: {}
+          },
+          store: generalFeed
+        });
+      } catch (error) {
+        console.error('Error fetching curated feed:', error);
+        // Fallback to mock data if real API fails
+        const mockListings = [
+          {
+            id: "249504",
+            release: {
+              id: 249504,
+              title: "Never, Neverland",
+              artist: "Annihilator",
+              year: 1990,
+              label: ["Roadrunner Records"],
+              format: "Vinyl",
+              genre: ["Metal", "Thrash Metal"],
+              style: ["Heavy Metal", "Thrash"],
+              thumb: "https://i.discogs.com/r/jpeg/400x400/1990/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy1SLTI0OTUw/NC0xMjQ0MzI2MzAy/LmpwZWc.jpeg",
+              resource_url: "https://api.discogs.com/releases/249504"
+            },
+            price: { currency: "USD", value: 25.99 },
+            condition: "Near Mint (NM or M-)",
+            sleeve_condition: "Very Good Plus (VG+)",
+            comments: "Original pressing in excellent condition"
+          }
+        ];
+
+        const transformedReleases = mockListings.map((item: any) => ({
+          id: item.release.id,
+          title: item.release.title,
+          artist: item.release.artist || 'Unknown Artist',
+          year: item.release.year,
+          label: Array.isArray(item.release.label) ? item.release.label[0] : (item.release.label || 'Unknown Label'),
+          country: item.release.country,
+          genre: item.release.genre || [],
+          style: item.release.style || [],
+          thumb: item.release.thumbnail || (item.release.images && item.release.images.length > 0 ? item.release.images[0].uri150 || item.release.images[0].uri : null),
+          resource_url: item.release.resource_url,
+          uri: `/releases/${item.release.id}`,
+          price: item.price?.value ? `${item.price.currency} ${item.price.value}` : null,
+          condition: item.condition,
+          sleeve_condition: item.sleeve_condition,
+          comments: item.comments,
+          store: {
+            id: generalFeed.id,
+            username: generalFeed.username
+          }
+        }));
+
+        return NextResponse.json({
+          results: transformedReleases,
+          pagination: {
+            page: 1,
+            pages: 1,
+            per_page: 50,
+            items: mockListings.length,
+            urls: {}
+          },
+          store: generalFeed
+        });
+      }
     }
 
     // Get the store from admin stores
@@ -157,6 +190,7 @@ export async function GET(
             year: 1990,
             label: ["Roadrunner Records"],
             format: "Vinyl",
+            country: "Canada",
             genre: ["Metal", "Thrash Metal"],
             style: ["Heavy Metal", "Thrash"],
             thumb: "https://i.discogs.com/r/jpeg/400x400/1990/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy1SLTI0OTUw/NC0xMjQ0MzI2MzAy/LmpwZWc.jpeg",
@@ -176,6 +210,7 @@ export async function GET(
             year: 1982,
             label: ["Epic Records"],
             format: "Vinyl",
+            country: "US",
             genre: ["Pop", "R&B"],
             style: ["Pop Rock", "Soul"],
             thumb: "https://i.discogs.com/r/jpeg/400x400/1982/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTEyMzQ1/NjctMTIzNDU2Nzg5/MC5qcGVn.jpeg",
@@ -195,6 +230,7 @@ export async function GET(
             year: 1973,
             label: ["Harvest Records"],
             format: "Vinyl",
+            country: "UK",
             genre: ["Rock", "Progressive Rock"],
             style: ["Psychedelic Rock", "Art Rock"],
             thumb: "https://i.discogs.com/r/jpeg/400x400/1973/rs:fit/g:sm/q:40/h:150/w:150/czM6Ly9kaXNjb2dz/LWRhdGFiYXNlLWlt/YWdlcy9SLTk4NzY1/NC0xMjM0NTY3ODkw/LmpwZWc.jpeg",
@@ -224,6 +260,7 @@ export async function GET(
       artist: item.release.artist || 'Unknown Artist',
       year: item.release.year,
       label: Array.isArray(item.release.label) ? item.release.label[0] : (item.release.label || 'Unknown Label'),
+      country: item.release.country,
       genre: item.release.genre || [],
       style: item.release.style || [],
       thumb: item.release.thumb,

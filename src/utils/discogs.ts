@@ -1,9 +1,20 @@
+export interface DiscogsTrack {
+  title: string;
+  duration: string;
+  position: string;
+  artists?: Array<{
+    name: string;
+    id: number;
+  }>;
+}
+
 export interface DiscogsRelease {
   id: number;
   title: string;
   artist: string;
   year: number;
   label: string;
+  country?: string;
   genre: string[];
   style: string[];
   thumb: string;
@@ -12,6 +23,7 @@ export interface DiscogsRelease {
   price?: string;
   condition?: string;
   sleeve_condition?: string;
+  tracks?: DiscogsTrack[];
 }
 
 export interface DiscogsSearchResult {

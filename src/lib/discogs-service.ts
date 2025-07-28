@@ -1,4 +1,4 @@
-import { Discogs } from 'disconnect';
+import { Client as Discogs } from 'disconnect';
 
 interface DiscogsConfig {
   consumerKey: string;
@@ -102,6 +102,41 @@ export class DiscogsService {
         else resolve(data);
       });
     });
+  }
+
+  // Direct API call for inventory (more reliable)
+  async getInventoryDirect(username: string, options: any = {}): Promise<any> {
+    try {
+      const params = {
+        status: options.status || 'For Sale',
+        per_page: options.per_page || 50,
+        page: options.page || 1,
+        ...options
+      };
+      
+      const response = await this.client.get(`/users/${username}/inventory`, params);
+      return response;
+    } catch (error) {
+      console.error('Error fetching inventory:', error);
+      throw new Error('Failed to fetch inventory from Discogs');
+    }
+  }
+
+  // Curated feed method for general feed
+  async getCuratedFeed(limit: number = 20): Promise<any> {
+    try {
+      // For now, get from fanatico_records as our curated source
+      // Later this can mix multiple sellers, add algorithmic curation, etc.
+      const inventory = await this.getInventoryDirect('fanatico_records', {
+        per_page: limit,
+        page: 1
+      });
+
+      return inventory;
+    } catch (error) {
+      console.error('Error creating curated feed:', error);
+      throw new Error('Failed to create curated feed');
+    }
   }
 
   // Wishlist methods
