@@ -18,6 +18,14 @@ export const metadata: Metadata = {
   description: "Scrollable vinyl discovery tool for DJs and record collectors",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover"
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

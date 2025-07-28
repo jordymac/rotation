@@ -6,10 +6,10 @@ const DISCOGS_API_BASE = 'https://api.discogs.com';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { storeId: string } }
+  { params }: { params: Promise<{ storeId: string }> }
 ) {
   try {
-    const { storeId } = params;
+    const { storeId } = await params;
     
     // Handle general feed case - now uses real Discogs data
     if (storeId === 'general-feed') {

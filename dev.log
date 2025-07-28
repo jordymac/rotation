@@ -1,0 +1,92 @@
+
+> rotation@0.1.0 dev
+> next dev
+
+   ▲ Next.js 15.4.2
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.20.29:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.1s
+ ✓ Compiled /middleware in 286ms (108 modules)
+ ○ Compiling /feed ...
+ ✓ Compiled /feed in 5s (589 modules)
+ GET /feed 200 in 5593ms
+ ○ Compiling /api/stores/[storeId]/inventory ...
+ ✓ Compiled /favicon.ico in 923ms (614 modules)
+ GET /favicon.ico 200 in 371ms
+ GET /feed 200 in 108ms
+Error: Route "/api/stores/[storeId]/inventory" used `params.storeId`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+    at GET (src/app/api/stores/[storeId]/inventory/route.ts:12:12)
+  10 | ) {
+  11 |   try {
+> 12 |     const { storeId } = params;
+     |            ^
+  13 |     
+  14 |     // Handle general feed case - now uses real Discogs data
+  15 |     if (storeId === 'general-feed') {
+Error: Route "/api/stores/[storeId]/inventory" used `params.storeId`. `params` should be awaited before using its properties. Learn more: https://nextjs.org/docs/messages/sync-dynamic-apis
+    at GET (src/app/api/stores/[storeId]/inventory/route.ts:12:12)
+  10 | ) {
+  11 |   try {
+> 12 |     const { storeId } = params;
+     |            ^
+  13 |     
+  14 |     // Handle general feed case - now uses real Discogs data
+  15 |     if (storeId === 'general-feed') {
+Curated feed data fetched: {
+  listingsLength: 50,
+  pagination: {
+    page: 1,
+    pages: 44,
+    per_page: 50,
+    items: 2160,
+    urls: {
+      last: 'https://api.discogs.com/users/fanatico_records/inventory?page=44&per_page=50',
+      next: 'https://api.discogs.com/users/fanatico_records/inventory?page=2&per_page=50'
+    }
+  }
+}
+Curated feed data fetched: {
+  listingsLength: 50,
+  pagination: {
+    page: 1,
+    pages: 44,
+    per_page: 50,
+    items: 2160,
+    urls: {
+      last: 'https://api.discogs.com/users/fanatico_records/inventory?page=44&per_page=50',
+      next: 'https://api.discogs.com/users/fanatico_records/inventory?page=2&per_page=50'
+    }
+  }
+}
+ GET /api/stores/general-feed/inventory 200 in 3746ms
+ GET /api/stores/general-feed/inventory 200 in 3341ms
+ ✓ Compiled in 1492ms (572 modules)
+ GET /feed 200 in 260ms
+ ✓ Compiled in 297ms (239 modules)
+ GET /feed 200 in 58ms
+ ✓ Compiled in 372ms (239 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 1565ms (563 modules)
+ GET /feed 404 in 1370ms
+ GET /feed 200 in 61ms
+ GET /feed 200 in 308ms
+ ✓ Compiled in 407ms (243 modules)
+ ✓ Compiled /api/stores/[storeId]/inventory in 167ms (374 modules)
+ GET /feed 200 in 131ms
+Curated feed data fetched: {
+  listingsLength: 50,
+  pagination: {
+    page: 1,
+    pages: 44,
+    per_page: 50,
+    items: 2160,
+    urls: {
+      last: 'https://api.discogs.com/users/fanatico_records/inventory?page=44&per_page=50',
+      next: 'https://api.discogs.com/users/fanatico_records/inventory?page=2&per_page=50'
+    }
+  }
+}
+ GET /api/stores/general-feed/inventory 200 in 3519ms

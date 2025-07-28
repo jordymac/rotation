@@ -254,8 +254,8 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
       
       const now = Date.now();
       
-      // Throttle wheel events - only allow one every 200ms
-      if (now - lastWheelTime < 200) return;
+      // Reduced throttle for better responsiveness - only allow one every 100ms
+      if (now - lastWheelTime < 100) return;
       
       if (isScrolling) return;
       
@@ -264,16 +264,16 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
       const deltaY = e.deltaY;
       const deltaX = e.deltaX;
       
-      // Check for horizontal scroll (tracks) first
-      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 20) {
+      // Check for horizontal scroll (tracks) first - reduced threshold for better sensitivity
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
         if (deltaX > 0) {
           handleTrackScroll('right');
         } else {
           handleTrackScroll('left');
         }
       }
-      // Otherwise, vertical scrolling (releases)
-      else if (Math.abs(deltaY) > 20) {
+      // Otherwise, vertical scrolling (releases) - reduced threshold for better sensitivity
+      else if (Math.abs(deltaY) > 10) {
         if (deltaY > 0) {
           handleScroll('down');
         } else {
@@ -419,10 +419,10 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
           </div>
 
           {/* Main Content Area */}
-          <div id="mobile-content-area" className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-hidden min-h-0">
+          <div id="mobile-content-area" className="flex-1 flex items-center justify-center p-4 sm:p-6 overflow-hidden min-h-0 relative">
             <div className={`w-full max-w-xs sm:max-w-sm text-center transition-all duration-500 ease-out flex flex-col h-full max-h-full ${
-              slideDirection === 'up' ? 'animate-slide-up' : 
-              slideDirection === 'down' ? 'animate-slide-down' :
+              slideDirection === 'up' ? 'animate-fade-up' : 
+              slideDirection === 'down' ? 'animate-fade-down' :
               ''
             }`}>
               {/* Use RecordCard for consistent layout */}
@@ -442,8 +442,8 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
             </div>
           </div>
 
-          {/* Bottom Actions - Responsive Layout */}
-          <div id="mobile-bottom-actions" className="px-4 sm:px-6 pb-4 sm:pb-6 flex-shrink-0">
+          {/* Bottom Actions - Responsive Layout with safe area padding */}
+          <div id="mobile-bottom-actions" className="px-4 sm:px-6 pb-6 sm:pb-6 flex-shrink-0" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
             {/* Single Row Layout for All Screens */}
             <div className="flex gap-2">
               <button

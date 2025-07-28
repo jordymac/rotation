@@ -48,6 +48,37 @@ body {
   }
 }
 
+/* Fade up/down animations - current record fades up/down, next comes from underneath */
+@keyframes fade-up {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-50px) scale(0.95);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes fade-down {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(50px) scale(0.95);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
 @keyframes slide-left {
   0% {
     transform: translateX(100%);
@@ -76,6 +107,14 @@ body {
 
 .animate-slide-down {
   animation: slide-down 0.5s ease-out;
+}
+
+.animate-fade-up {
+  animation: fade-up 0.5s ease-out;
+}
+
+.animate-fade-down {
+  animation: fade-down 0.5s ease-out;
 }
 
 .animate-slide-left {
