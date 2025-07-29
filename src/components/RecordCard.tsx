@@ -1,5 +1,5 @@
 import { DiscogsRelease } from '@/utils/discogs';
-import { EyeIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, MusicalNoteIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect, useRef } from 'react';
 
 // Country code to flag emoji mapping
@@ -54,6 +54,7 @@ interface RecordCardProps {
   viewMode?: 'grid' | 'list';
   isSellerMode?: boolean;
   onManageItem?: (release: DiscogsRelease) => void;
+  onVerifyAudio?: (release: DiscogsRelease) => void;
   currentTrack?: {
     title: string;
     duration: string;
@@ -70,7 +71,71 @@ interface RecordCardProps {
   isScrolling?: boolean;
 }
 
-export default function RecordCard({ release, viewMode = 'grid', isSellerMode = false, onManageItem, currentTrack, showTrackInfo = false, tracks, currentTrackIndex = 0, onTrackChange, isScrolling = false }: RecordCardProps) {
+// Simple seeded random function for consistent results
+const seededRandom = (seed: number) => {
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+};
+
+// Generate enhanced track data for verification calculations (same as management modal)
+const generateEnhancedTracks = (release: DiscogsRelease) => {
+  // Use real track data from the release if available, otherwise create minimal fallback
+  const baseTracks = release.tracks && release.tracks.length > 0 
+    ? release.tracks 
+    : [
+        { position: 'A1', title: release.title, duration: '3:30' },
+        { position: 'A2', title: `${release.title} (Alternate)`, duration: '3:45' }
+      ];
+  
+  return baseTracks.map((track, index) => {
+    // Use release ID and track index as seed for consistent results
+    const seed = release.id * 1000 + index;
+    
+    // Mock audio matching data - in production this would come from audio matching service
+    const mockAudioData = {
+      hasAudio: seededRandom(seed) > 0.2, // 80% chance of having audio
+      platforms: [] as string[],
+      matchQuality: 'medium' as 'high' | 'medium' | 'low'
+    };
+    
+    // Randomly assign platforms for tracks that have audio
+    if (mockAudioData.hasAudio) {
+      const allPlatforms = ['youtube', 'spotify', 'apple', 'soundcloud'];
+      const numPlatforms = Math.floor(seededRandom(seed + 1) * 3) + 1; // 1-3 platforms
+      const shuffled = [...allPlatforms].sort(() => 0.5 - seededRandom(seed + 2));
+      mockAudioData.platforms = shuffled.slice(0, numPlatforms);
+      
+      // Higher quality if more platforms
+      if (mockAudioData.platforms.length >= 3) {
+        mockAudioData.matchQuality = 'high';
+      } else if (mockAudioData.platforms.length >= 2) {
+        mockAudioData.matchQuality = 'medium';
+      } else {
+        mockAudioData.matchQuality = seededRandom(seed + 3) > 0.5 ? 'medium' : 'low';
+      }
+    } else {
+      mockAudioData.matchQuality = 'low';
+    }
+    
+    return {
+      position: track.position,
+      title: track.title,
+      duration: track.duration || '3:30', // Fallback duration
+      artists: track.artists,
+      ...mockAudioData
+    };
+  });
+};
+
+export default function RecordCard({ release, viewMode = 'grid', isSellerMode = false, onManageItem, onVerifyAudio, currentTrack, showTrackInfo = false, tracks, currentTrackIndex = 0, onTrackChange, isScrolling = false }: RecordCardProps) {
+  // Calculate real verification status for list view
+  const enhancedTracks = generateEnhancedTracks(release);
+  const totalTracks = enhancedTracks.length;
+  const tracksWithAudio = enhancedTracks.filter(t => t.hasAudio).length;
+  const audioMatchPercentage = Math.round((tracksWithAudio / totalTracks) * 100);
+  const isVerified = audioMatchPercentage >= 80;
+  
+
   if (viewMode === 'list') {
     return (
       <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-4 hover:bg-white/20 transition-all duration-200">
@@ -172,28 +237,41 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
             {/* Column 3: Verification */}
             <div className="text-center">
               <p className="text-sm text-white/80 mb-1">
-                4/4 tracks
+                {tracksWithAudio}/{totalTracks} tracks
               </p>
               <div className="flex items-center justify-center gap-1 mb-1">
-                <span className="text-xs text-green-400">🎵</span>
-                <span className="text-xs text-white/60">Audio Match</span>
+                <MusicalNoteIcon className="w-3 h-3 text-green-400" />
+                <span className="text-xs text-white/60">{audioMatchPercentage}% Audio Match</span>
               </div>
               <div className="flex items-center justify-center gap-1">
-                <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                <span className="text-xs text-white/60">Verified</span>
+                {isVerified ? (
+                  <CheckIcon className="w-3 h-3 text-green-400" />
+                ) : (
+                  <ExclamationTriangleIcon className="w-3 h-3 text-orange-400" />
+                )}
+                <span className="text-xs text-white/60">{isVerified ? 'Verified' : 'Needs Review'}</span>
               </div>
             </div>
             
             {/* Column 4: Actions */}
             <div className="text-center">
               {isSellerMode ? (
-                <button
-                  onClick={() => onManageItem?.(release)}
-                  className="w-full border-l-2 border-white/20 pl-6 pr-4 py-3 flex items-center justify-center text-white/80 hover:text-white hover:border-white/40 transition-colors text-base font-medium"
-                >
-                  <span className="flex-1 text-center">Manage</span>
-                  <span className="text-white/40 text-lg ml-2">›</span>
-                </button>
+                <div className="border-l-2 border-white/20 pl-6 pr-4 py-3 space-y-2">
+                  <button
+                    onClick={() => onManageItem?.(release)}
+                    className="w-full flex items-center justify-center text-white/80 hover:text-white transition-colors text-sm font-medium py-1"
+                  >
+                    <span className="flex-1 text-center">Manage</span>
+                    <span className="text-white/40 text-lg ml-2">›</span>
+                  </button>
+                  <button
+                    onClick={() => onVerifyAudio?.(release)}
+                    className="w-full flex items-center justify-center text-blue-400 hover:text-blue-300 transition-colors text-sm font-medium py-1"
+                  >
+                    <MusicalNoteIcon className="w-4 h-4 mr-1" />
+                    <span>Verify Audio</span>
+                  </button>
+                </div>
               ) : (
                 <div className="w-full border-l-2 border-white/20 pl-6 pr-4 py-3 flex items-center justify-center gap-3">
                   <button
@@ -454,6 +532,7 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
           )}
         </div>
       </div>
+
     </div>
   );
 }

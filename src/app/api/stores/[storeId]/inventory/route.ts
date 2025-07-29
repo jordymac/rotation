@@ -178,8 +178,39 @@ export async function GET(
       console.log('Discogs API fetch failed, using mock data:', fetchError);
     }
     
+    // Fetch full release details for track data (similar to general feed)
+    let enhancedListings = [];
+    if (data.listings && data.listings.length > 0) {
+      // Fetch full details for first 10 items to get track data
+      enhancedListings = await Promise.all(
+        data.listings.slice(0, 10).map(async (item: any) => {
+          try {
+            const discogsService = createDiscogsService();
+            const fullRelease = await discogsService.getRelease(item.release.id);
+            return {
+              ...item,
+              release: {
+                ...item.release,
+                tracklist: fullRelease.tracklist || [],
+                genres: fullRelease.genres || item.release.genres || [],
+                styles: fullRelease.styles || item.release.styles || []
+              }
+            };
+          } catch (error) {
+            console.error(`Error fetching release ${item.release.id}:`, error);
+            return item; // Return original item if fetch fails
+          }
+        })
+      );
+      
+      // Add remaining items without enhanced data
+      if (data.listings.length > 10) {
+        enhancedListings = [...enhancedListings, ...data.listings.slice(10)];
+      }
+    }
+
     // If no real inventory, use mock data for development
-    if (!data.listings || data.listings.length === 0) {
+    if (!enhancedListings || enhancedListings.length === 0) {
       const mockListings = [
         {
           id: "249504",
@@ -243,7 +274,7 @@ export async function GET(
         }
       ];
 
-      data.listings = mockListings;
+      enhancedListings = mockListings;
       data.pagination = {
         page: 1,
         pages: 1,
@@ -254,7 +285,7 @@ export async function GET(
     }
     
     // Transform the inventory data to match our interface
-    const transformedReleases = data.listings?.map((item: any) => ({
+    const transformedReleases = enhancedListings?.map((item: any) => ({
       id: item.release.id,
       title: item.release.title,
       artist: item.release.artist || 'Unknown Artist',
@@ -266,6 +297,7 @@ export async function GET(
       thumb: item.release.thumb,
       resource_url: item.release.resource_url,
       uri: `/releases/${item.release.id}`,
+      tracks: item.release.tracklist || [],
       price: item.price?.value ? `${item.price.currency} ${item.price.value}` : null,
       condition: item.condition,
       sleeve_condition: item.sleeve_condition,

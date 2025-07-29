@@ -52,15 +52,116 @@ function StorefrontContent() {
   const [showFilters, setShowFilters] = useState(false);
   const [showVerification, setShowVerification] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<DiscogsRelease | null>(null);
+  const [selectedRecordIndex, setSelectedRecordIndex] = useState<number>(0);
   const [showManagementModal, setShowManagementModal] = useState(false);
+  const [modalInitialTab, setModalInitialTab] = useState<'details' | 'tracks' | 'pricing'>('details');
 
   useEffect(() => {
     loadStoreInventory();
   }, [storeId]);
 
   const handleManageItem = (release: DiscogsRelease) => {
+    const index = filteredReleases.findIndex(r => r.id === release.id);
     setSelectedRecord(release);
+    setSelectedRecordIndex(index >= 0 ? index : 0);
+    setModalInitialTab('details');
     setShowManagementModal(true);
+  };
+
+  const handleVerifyAudio = (release: DiscogsRelease) => {
+    const index = filteredReleases.findIndex(r => r.id === release.id);
+    setSelectedRecord(release);
+    setSelectedRecordIndex(index >= 0 ? index : 0);
+    setModalInitialTab('tracks');
+    setShowManagementModal(true);
+  };
+  
+  // Simple seeded random function for consistent results
+  const seededRandom = (seed: number) => {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+  };
+
+  // Enhanced track data generation - same logic as modal
+  const generateEnhancedTracks = (release: DiscogsRelease) => {
+    // Use real track data from the release if available, otherwise create minimal fallback
+    const baseTracks = release.tracks && release.tracks.length > 0 
+      ? release.tracks 
+      : [
+          { position: 'A1', title: release.title, duration: '3:30' },
+          { position: 'A2', title: `${release.title} (Alternate)`, duration: '3:45' }
+        ];
+    
+    return baseTracks.map((track, index) => {
+      // Use release ID and track index as seed for consistent results
+      const seed = release.id * 1000 + index;
+      
+      // Mock audio matching data - in production this would come from audio matching service
+      const mockAudioData = {
+        hasAudio: seededRandom(seed) > 0.2, // 80% chance of having audio
+        platforms: [] as string[],
+        matchQuality: 'medium' as 'high' | 'medium' | 'low'
+      };
+      
+      // Randomly assign platforms for tracks that have audio
+      if (mockAudioData.hasAudio) {
+        const allPlatforms = ['youtube', 'spotify', 'apple', 'soundcloud'];
+        const numPlatforms = Math.floor(seededRandom(seed + 1) * 3) + 1; // 1-3 platforms
+        const shuffled = [...allPlatforms].sort(() => 0.5 - seededRandom(seed + 2));
+        mockAudioData.platforms = shuffled.slice(0, numPlatforms);
+        
+        // Higher quality if more platforms
+        if (mockAudioData.platforms.length >= 3) {
+          mockAudioData.matchQuality = 'high';
+        } else if (mockAudioData.platforms.length >= 2) {
+          mockAudioData.matchQuality = 'medium';
+        } else {
+          mockAudioData.matchQuality = seededRandom(seed + 3) > 0.5 ? 'medium' : 'low';
+        }
+      } else {
+        mockAudioData.matchQuality = 'low';
+      }
+      
+      return {
+        position: track.position,
+        title: track.title,
+        duration: track.duration || '3:30', // Fallback duration
+        artists: track.artists,
+        ...mockAudioData
+      };
+    });
+  };
+
+  const handleNextUnverified = () => {
+    // Find next unverified record using the same logic as the modal
+    const needsVerification = (release: DiscogsRelease) => {
+      const releaseTracks = generateEnhancedTracks(release);
+      const tracksWithAudio = releaseTracks.filter(t => t.hasAudio).length;
+      const audioPercentage = Math.round((tracksWithAudio / releaseTracks.length) * 100);
+      return audioPercentage < 80;
+    };
+    
+    // Find next unverified release
+    for (let i = selectedRecordIndex + 1; i < filteredReleases.length; i++) {
+      if (needsVerification(filteredReleases[i])) {
+        setSelectedRecord(filteredReleases[i]);
+        setSelectedRecordIndex(i);
+        return;
+      }
+    }
+    
+    // If no unverified found after current, search from beginning
+    for (let i = 0; i < selectedRecordIndex; i++) {
+      if (needsVerification(filteredReleases[i])) {
+        setSelectedRecord(filteredReleases[i]);
+        setSelectedRecordIndex(i);
+        return;
+      }
+    }
+    
+    // No more unverified records, close modal
+    setShowManagementModal(false);
+    setSelectedRecord(null);
   };
 
   const handleSaveRecord = (updatedRelease: Partial<DiscogsRelease>) => {
@@ -493,9 +594,12 @@ function StorefrontContent() {
 
         {/* Results */}
         <div className="mb-4 text-white/70">
-          Showing {filteredReleases.length} of {storeData?.pagination.items} items
+          Showing {Math.min(filteredReleases.length, 10)} of {storeData?.pagination.items} items
+          {filteredReleases.length > 10 && (
+            <span className="text-orange-400"> (limited to 10 for development)</span>
+          )}
           <span className="ml-4 text-blue-400">
-            • {Math.floor(filteredReleases.length * 0.8)} active • {Math.ceil(filteredReleases.length * 0.15)} need review • {Math.ceil(filteredReleases.length * 0.05)} inactive
+            • {Math.floor(Math.min(filteredReleases.length, 10) * 0.8)} active • {Math.ceil(Math.min(filteredReleases.length, 10) * 0.15)} need review • {Math.ceil(Math.min(filteredReleases.length, 10) * 0.05)} inactive
           </span>
         </div>
 
@@ -527,15 +631,24 @@ function StorefrontContent() {
           </div>
         ) : (
           <div className="space-y-4">
-            {filteredReleases.map((release) => (
+            {/* Limit to 10 records for testing */}
+            {filteredReleases.slice(0, 10).map((release) => (
               <RecordCard 
                 key={release.id} 
                 release={release} 
                 viewMode={viewMode}
                 isSellerMode={isSellerMode}
                 onManageItem={handleManageItem}
+                onVerifyAudio={handleVerifyAudio}
               />
             ))}
+            {filteredReleases.length > 10 && (
+              <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-6 text-center">
+                <p className="text-white/70">
+                  Showing first 10 of {filteredReleases.length} items (limited for development)
+                </p>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -550,6 +663,10 @@ function StorefrontContent() {
             setSelectedRecord(null);
           }}
           onSave={handleSaveRecord}
+          onNextUnverified={handleNextUnverified}
+          allReleases={filteredReleases}
+          currentReleaseIndex={selectedRecordIndex}
+          initialTab={modalInitialTab}
         />
       )}
     </div>
