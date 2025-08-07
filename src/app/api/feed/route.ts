@@ -31,23 +31,23 @@ export async function GET(request: NextRequest) {
     
     console.log(`[API] Getting feed data${storeId ? ` for store ${storeId}` : ' (general)'}`);
 
-    // Get releases from store inventory
-    const inventoryEndpoint = storeId 
-      ? `/api/stores/${storeId}/inventory`
-      : '/api/stores/general-feed/inventory';
+    // Get releases from store inventory (direct function call instead of HTTP)
+    let inventoryData;
     
-    // Make internal API call to get releases
-    const baseUrl = process.env.VERCEL_URL 
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000';
-      
-    const inventoryResponse = await fetch(`${baseUrl}${inventoryEndpoint}`);
-    
-    if (!inventoryResponse.ok) {
-      throw new Error(`Failed to fetch inventory: ${inventoryResponse.status}`);
+    if (storeId) {
+      // Import and call store inventory function directly
+      const { GET: getStoreInventory } = await import('@/app/api/stores/[storeId]/inventory/route');
+      const mockRequest = new Request(`https://example.com/api/stores/${storeId}/inventory`);
+      const response = await getStoreInventory(mockRequest, { params: Promise.resolve({ storeId }) });
+      inventoryData = await response.json();
+    } else {
+      // Import and call general feed function directly
+      const { GET: getStoreInventory } = await import('@/app/api/stores/[storeId]/inventory/route');
+      const mockRequest = new Request('https://example.com/api/stores/general-feed/inventory');
+      const response = await getStoreInventory(mockRequest, { params: Promise.resolve({ storeId: 'general-feed' }) });
+      inventoryData = await response.json();
     }
     
-    const inventoryData = await inventoryResponse.json();
     const releases: FeedRelease[] = inventoryData.results || [];
     
     console.log(`[API] Found ${releases.length} releases, fetching audio matches...`);
