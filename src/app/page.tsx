@@ -10,6 +10,7 @@ export default function Home() {
     <HomeTemplate
       onEnterFeed={() => router.push('/feed')}
       onBrowseStores={() => router.push('/stores')}
+      onGoToAdmin={() => router.push('/admin')}
     />
   );
 }
