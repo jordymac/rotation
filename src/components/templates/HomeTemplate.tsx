@@ -5,11 +5,13 @@ import { PageLayout } from './PageLayout';
 interface HomeTemplateProps {
   onEnterFeed: () => void;
   onBrowseStores: () => void;
+  onGoToAdmin?: () => void;
 }
 
 export const HomeTemplate: React.FC<HomeTemplateProps> = ({
   onEnterFeed,
-  onBrowseStores
+  onBrowseStores,
+  onGoToAdmin
 }) => {
   return (
     <PageLayout showFooter={false}>
@@ -28,6 +30,14 @@ export const HomeTemplate: React.FC<HomeTemplateProps> = ({
               >
                 Browse Stores
               </button>
+              {onGoToAdmin && (
+                <button 
+                  onClick={onGoToAdmin}
+                  className="text-gray-700 hover:text-gray-900 transition-colors"
+                >
+                  Admin
+                </button>
+              )}
               <button
                 onClick={() => window.location.href = '/auth'}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
