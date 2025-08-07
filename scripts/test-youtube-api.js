@@ -125,7 +125,7 @@ const main = async () => {
   if (!apiKey) {
     console.log('Usage: node test-youtube-api.js <api_key>');
     console.log('');
-    console.log('Example: node test-youtube-api.js AIzaSyBYaHRyjW_Lm4wZvw8yblpjQrfWXayPXaA');
+    console.log('Example: node test-youtube-api.js YOUR_YOUTUBE_API_KEY_HERE');
     console.log('');
     showSetupInstructions();
     return;
