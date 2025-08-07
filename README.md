@@ -19,7 +19,7 @@ Instead of static Discogs listings, Rotation turns record collections into an in
 - [x] Built with Next.js (App Router) with TypeScript
 - [x] Store management system with Discogs API integration
 - [x] Scrollable feed UI with vinyl records from store inventory
-- [x] Advanced audio matching with YouTube/Discogs embedded videos
+- [x] Advanced audio matching with YouTube/Discogs embedded videos (in development)
 - [x] PostgreSQL database with Redis caching layer
 - [x] Admin interface for record store management
 - [x] Atomic design component architecture
@@ -29,8 +29,27 @@ Instead of static Discogs listings, Rotation turns record collections into an in
 
 ---
 
+## 🎵 Audio Preview Status
+
+**Current State**: Audio matching system is actively being developed and refined. The system successfully finds and caches audio matches from Discogs embedded videos and YouTube, but coverage isn't universal.
+
+**Known Limitations**:
+- Not every vinyl release has available audio previews
+- Some genres/eras have better coverage than others
+- Rare or obscure releases may lack digital audio sources
+
+**User Experience**: Records without audio previews will display fallback messaging such as:
+- "Listening only available in-store"
+- "Purchase anyway - support the dig!"
+- Direct purchase links to support record discovery regardless
+
+**Next Steps**: Apple Music API integration planned to significantly expand preview coverage across all genres and release years.
+
+---
+
 ## 🔜 Coming Soon (Post-MVP)
 
+- Apple Music API integration for comprehensive audio preview coverage
 - Enhanced smart caching system for improved performance
 - Consumer-facing discovery features and wishlist functionality
 - Tagging suggestions (mood, set time, energy)
@@ -88,11 +107,14 @@ src/
 - PostgreSQL (Supabase) for data persistence
 - Redis (Upstash) for caching layer
 
-**Audio Matching**
+**Audio Matching (In Development)**
 - Enhanced string similarity with Levenshtein distance
 - Mix-aware terminology normalization (radio ≠ dub ≠ remix)
 - Confidence scoring and auto-approval system
 - Discogs embedded video prioritization
+- **Current limitation**: Not every record has available videos/previews
+- Fallback messaging: "Listening only available in-store" or "Purchase anyway"
+- **Planned**: Apple Music API integration for broader preview coverage
 
 **Deployment**
 - Vercel for hosting and CI/CD
