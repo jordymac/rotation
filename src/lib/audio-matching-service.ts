@@ -28,6 +28,7 @@ interface TrackCandidate {
 }
 
 interface TrackMatch {
+  trackIndex: number; // Add track index for matching
   trackPosition: string;
   trackTitle: string;
   trackArtist: string;
@@ -137,7 +138,13 @@ class PlatformAPIService {
         throw new Error(`YouTube search failed: ${searchResponse.status}`);
       }
       
-      const searchData = await searchResponse.json();
+      const searchText = await searchResponse.text();
+      if (!searchText.trim()) {
+        console.warn('[YouTube API] Empty response from search API');
+        return [];
+      }
+      
+      const searchData = JSON.parse(searchText);
       
       // Get video details for duration
       const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
@@ -148,7 +155,13 @@ class PlatformAPIService {
         throw new Error(`YouTube details failed: ${detailsResponse.status}`);
       }
       
-      const detailsData = await detailsResponse.json();
+      const detailsText = await detailsResponse.text();
+      if (!detailsText.trim()) {
+        console.warn('[YouTube API] Empty response from details API');
+        return [];
+      }
+      
+      const detailsData = JSON.parse(detailsText);
       
       return detailsData.items.map((video: any) => {
         const duration = this.parseYouTubeDuration(video.contentDetails.duration);
@@ -215,7 +228,13 @@ class PlatformAPIService {
         throw new Error(`SoundCloud search failed: ${response.status}`);
       }
       
-      const tracks = await response.json();
+      const tracksText = await response.text();
+      if (!tracksText.trim()) {
+        console.warn('[SoundCloud API] Empty response');
+        return [];
+      }
+      
+      const tracks = JSON.parse(tracksText);
       
       const results = await Promise.all(tracks.map(async (track: any) => {
         let previewUrl = null;
@@ -230,8 +249,11 @@ class PlatformAPIService {
             try {
               const streamResponse = await fetch(`${mp3Transcoding.url}?client_id=${workingClientId}`);
               if (streamResponse.ok) {
-                const streamData = await streamResponse.json();
-                previewUrl = streamData.url;
+                const streamText = await streamResponse.text();
+                if (streamText.trim()) {
+                  const streamData = JSON.parse(streamText);
+                  previewUrl = streamData.url;
+                }
               }
             } catch (err) {
               console.warn('[SoundCloud API] Failed to get stream URL:', err);
@@ -263,17 +285,28 @@ class PlatformAPIService {
   private static async mockYouTubeSearch(query: string): Promise<Partial<TrackCandidate>[]> {
     await new Promise(resolve => setTimeout(resolve, 500));
     
+    // Use known working YouTube video IDs for testing
+    const testVideoIds = [
+      'dQw4w9WgXcQ', // Rick Astley - Never Gonna Give You Up
+      'kJQP7kiw5Fk', // Luis Fonsi - Despacito
+      '9bZkp7q19f0'  // PSY - GANGNAM STYLE
+    ];
+    
+    const randomVideoId = testVideoIds[Math.floor(Math.random() * testVideoIds.length)];
+    
     return [
       {
         platform: 'youtube' as const,
-        id: `mock_yt_${Math.random().toString(36).substring(2, 11)}`,
-        videoId: `mock_yt_${Math.random().toString(36).substring(2, 11)}`,
+        id: randomVideoId,
+        videoId: randomVideoId,
         title: query.split(' - ')[1] || query,
         artist: query.split(' - ')[0] || 'Unknown Artist',
         duration: 180 + Math.floor(Math.random() * 120),
-        url: `https://youtube.com/watch?v=mock_${Math.random().toString(36).substring(2, 11)}`,
-        embedUrl: `https://www.youtube.com/embed/mock_${Math.random().toString(36).substring(2, 11)}`,
-        thumbnailUrl: `https://img.youtube.com/vi/mock/maxresdefault.jpg`,
+        url: `https://youtube.com/watch?v=${randomVideoId}`,
+        embedUrl: `https://www.youtube.com/embed/${randomVideoId}`,
+        thumbnailUrl: `https://img.youtube.com/vi/${randomVideoId}/maxresdefault.jpg`,
+        confidence: 75 + Math.floor(Math.random() * 25), // 75-100% confidence
+        classification: 'high' as const
       }
     ];
   }
@@ -314,8 +347,15 @@ class PlatformAPIService {
       const response = await fetch(testUrl);
       
       if (response.ok) {
-        const data = await response.json();
-        return Array.isArray(data); // Should return an array of tracks
+        const text = await response.text();
+        if (!text.trim()) return false;
+        
+        try {
+          const data = JSON.parse(text);
+          return Array.isArray(data); // Should return an array of tracks
+        } catch (err) {
+          return false;
+        }
       }
       
       return false;
@@ -340,7 +380,7 @@ export class AudioMatchingService {
       artists?: Array<{ name: string; id: number; }>;
     }>
   ): Promise<AudioMatchResult> {
-    console.log(`[AudioMatchingService] Starting audio matching for release ${releaseId}`);
+    console.log(`[AudioMatchingService] Starting audio matching for release ${releaseId}: ${releaseTitle} by ${releaseArtist}`);
     console.log(`[AudioMatchingService] Processing up to 10 tracks (${Math.min(tracks.length, 10)} total)`);
 
     // Limit to first 10 tracks
@@ -364,17 +404,14 @@ export class AudioMatchingService {
       // Create search query
       const searchQuery = `${trackArtist} - ${track.title}`;
 
-      // Search all platforms in parallel
-      const [youtubeResults, soundcloudResults] = await Promise.all([
-        PlatformAPIService.searchYouTube(searchQuery).catch(err => {
-          console.error('[YouTube API] Error:', err);
-          return [];
-        }),
-        PlatformAPIService.searchSoundCloud(searchQuery).catch(err => {
-          console.error('[SoundCloud API] Error:', err);
-          return [];
-        })
-      ]);
+      // Search YouTube only (SoundCloud disabled)
+      const youtubeResults = await PlatformAPIService.searchYouTube(searchQuery).catch(err => {
+        console.error('[YouTube API] Error:', err);
+        return [];
+      });
+      
+      // SoundCloud disabled for now
+      const soundcloudResults: Partial<TrackCandidate>[] = [];
 
       // Combine all results and calculate confidence scores
       const allCandidates: TrackCandidate[] = [
@@ -397,7 +434,7 @@ export class AudioMatchingService {
         } as TrackCandidate;
       });
 
-      // Sort by confidence (highest first)
+      // Sort by confidence (highest first) - only YouTube results now
       allCandidates.sort((a, b) => b.confidence - a.confidence);
 
       // Classify candidates
@@ -406,6 +443,7 @@ export class AudioMatchingService {
       const rejected = allCandidates.filter(c => c.classification === 'low');
 
       matches.push({
+        trackIndex: tracksToProcess.indexOf(track), // Add track index for matching
         trackPosition: track.position,
         trackTitle: track.title,
         trackArtist: trackArtist,

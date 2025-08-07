@@ -1,6 +1,7 @@
 import { DiscogsRelease } from '@/utils/discogs';
 import { EyeIcon, MusicalNoteIcon, CheckIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { useState, useEffect, useRef } from 'react';
+import YouTubeAudioPlayer from './YouTubeAudioPlayer';
 
 // Country code to flag emoji mapping
 const countryToFlag = (country: string): string => {
@@ -69,6 +70,8 @@ interface RecordCardProps {
   currentTrackIndex?: number;
   onTrackChange?: (index: number) => void;
   isScrolling?: boolean;
+  youtubeVideoId?: string | null;
+  audioLoading?: boolean;
 }
 
 // Simple seeded random function for consistent results
@@ -127,13 +130,14 @@ const generateEnhancedTracks = (release: DiscogsRelease) => {
   });
 };
 
-export default function RecordCard({ release, viewMode = 'grid', isSellerMode = false, onManageItem, onVerifyAudio, currentTrack, showTrackInfo = false, tracks, currentTrackIndex = 0, onTrackChange, isScrolling = false }: RecordCardProps) {
+export default function RecordCard({ release, viewMode = 'grid', isSellerMode = false, onManageItem, onVerifyAudio, currentTrack, showTrackInfo = false, tracks, currentTrackIndex = 0, onTrackChange, isScrolling = false, youtubeVideoId, audioLoading }: RecordCardProps) {
   // Calculate real verification status for list view
   const enhancedTracks = generateEnhancedTracks(release);
   const totalTracks = enhancedTracks.length;
   const tracksWithAudio = enhancedTracks.filter(t => t.hasAudio).length;
   const audioMatchPercentage = Math.round((tracksWithAudio / totalTracks) * 100);
   const isVerified = audioMatchPercentage >= 80;
+  
   
 
   if (viewMode === 'list') {
@@ -487,26 +491,52 @@ export default function RecordCard({ release, viewMode = 'grid', isSellerMode = 
           <GenresAndStyles genres={release.genre || []} styles={release.style || []} />
         </div>
         
-        {/* 5. Audio Play and Timeline Scrub */}
+        {/* 5. Audio Player */}
         <div id="audio-player-section" className="mb-4">
-          <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
-            <div className="flex items-center gap-3 mb-2">
-              <button id="play-button" className="w-10 h-10 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center text-white transition-colors">
-                <svg className="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z"/>
-                </svg>
-              </button>
-              <div className="flex-1">
-                <div id="track-timeline-labels" className="flex justify-between text-xs text-white/60 mb-1">
-                  <span id="current-time">0:00</span>
-                  <span id="total-duration">{currentTrack?.duration || "3:45"}</span>
+          {showTrackInfo && youtubeVideoId && viewMode !== 'list' ? (
+            <YouTubeAudioPlayer
+              key={`${release.id}-${currentTrackIndex}`} // Force re-mount when track changes
+              videoId={youtubeVideoId}
+              autoplay={false}
+              onError={(error) => console.error('YouTube player error:', error)}
+            />
+          ) : showTrackInfo && audioLoading && viewMode !== 'list' ? (
+            <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                  <div className="w-4 h-4 bg-white/60 rounded-full animate-pulse"></div>
                 </div>
-                <div id="track-timeline" className="w-full h-2 bg-white/20 rounded-full cursor-pointer">
-                  <div id="track-progress" className="h-full w-1/3 bg-white rounded-full"></div>
+                <div className="flex-1">
+                  <div className="flex justify-between text-xs text-white/60 mb-1">
+                    <span>Loading...</span>
+                    <span>--:--</span>
+                  </div>
+                  <div className="w-full h-2 bg-white/20 rounded-full">
+                    <div className="h-full w-0 bg-white/60 rounded-full"></div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : showTrackInfo ? (
+            <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm opacity-60">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white/60">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 715.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <div className="flex justify-between text-xs text-white/60 mb-1">
+                    <span>No audio</span>
+                    <span>{currentTrack?.duration || "3:45"}</span>
+                  </div>
+                  <div className="w-full h-2 bg-white/20 rounded-full">
+                    <div className="h-full w-0 bg-white/40 rounded-full"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
         
         {/* Price and Condition - same row */}

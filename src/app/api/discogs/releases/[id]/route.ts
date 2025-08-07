@@ -12,7 +12,7 @@ export async function GET(
     const response = await fetch(`${DISCOGS_API_BASE}/releases/${id}`, {
       headers: {
         'User-Agent': 'Rotation/1.0 +https://rotation.app',
-        'Authorization': `Discogs token=${process.env.DISCOGS_TOKEN}`,
+        'Authorization': `Discogs token=${process.env.DISCOGS_USER_TOKEN}`,
       },
     });
 

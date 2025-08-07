@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';
+import { Header } from '@/components/organisms';
 
 export default function AuthPage() {
   const router = useRouter();

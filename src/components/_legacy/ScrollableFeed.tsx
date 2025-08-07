@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { ShoppingCartIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { DiscogsRelease, DiscogsTrack } from '@/utils/discogs';
 import RecordCard from './RecordCard';
-
+import { useAudioMatch } from '@/hooks/useAudioMatch';
 interface ScrollableFeedProps {
   releases: DiscogsRelease[];
   storeInfo?: {
@@ -97,6 +97,17 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
   // Safety check for currentReleaseIndex
   const safeReleaseIndex = Math.min(currentReleaseIndex, releasesWithTracks.length - 1);
   const currentRelease = releasesWithTracks[safeReleaseIndex];
+  
+  // Global audio matching for the current track
+  const currentTrackTitle = currentRelease?.tracks?.[currentTrackIndex]?.title || currentRelease?.title;
+  const { youtubeVideoId, loading: audioLoading } = useAudioMatch(
+    currentRelease?.id || 0,
+    currentTrackIndex,
+    currentRelease?.title,
+    currentRelease?.artist,
+    currentTrackTitle,
+    { enabled: !!currentRelease }
+  );
 
   // Reset index if it's out of bounds
   useEffect(() => {
@@ -127,6 +138,34 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
   // Reset track index when switching releases
   useEffect(() => {
     setCurrentTrackIndex(0);
+    
+    // Stop any playing audio when switching records
+    const stopAllAudio = () => {
+      // Stop HTML5 audio elements
+      const audioElements = document.querySelectorAll('audio');
+      audioElements.forEach(audio => audio.pause());
+      
+      // Stop YouTube players
+      try {
+        if ((window as any).YT && (window as any).YT.get) {
+          const iframes = document.querySelectorAll('iframe[src*="youtube"]');
+          iframes.forEach(iframe => {
+            try {
+              const player = (window as any).YT.get(iframe.id);
+              if (player && player.pauseVideo) {
+                player.pauseVideo();
+              }
+            } catch (e) {
+              console.log('Could not pause YouTube player:', e);
+            }
+          });
+        }
+      } catch (e) {
+        console.log('YouTube API not available for stopping audio');
+      }
+    };
+    
+    stopAllAudio();
   }, [currentReleaseIndex]);
 
   // Handle background image transitions
@@ -551,6 +590,8 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
                   currentTrackIndex={currentTrackIndex}
                   onTrackChange={setCurrentTrackIndex}
                   isScrolling={isScrolling}
+                  youtubeVideoId={youtubeVideoId}
+                  audioLoading={audioLoading}
                 />
               </div>
             </div>
@@ -974,6 +1015,8 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
                 currentTrackIndex={currentTrackIndex}
                 onTrackChange={setCurrentTrackIndex}
                 isScrolling={isScrolling}
+                youtubeVideoId={youtubeVideoId}
+                audioLoading={audioLoading}
               />
             </div>
             
@@ -1093,6 +1136,7 @@ export default function ScrollableFeed({ releases, storeInfo }: ScrollableFeedPr
           )}
         </div>
       </div>
+      
     </>
   );
 }

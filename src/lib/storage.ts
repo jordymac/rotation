@@ -20,7 +20,9 @@ function loadStorage(): StorageData {
   try {
     if (fs.existsSync(storageFile)) {
       const data = fs.readFileSync(storageFile, 'utf-8');
-      return JSON.parse(data);
+      if (data.trim()) {
+        return JSON.parse(data);
+      }
     }
   } catch (error) {
     console.error('Error loading storage:', error);

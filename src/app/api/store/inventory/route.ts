@@ -27,7 +27,7 @@ export async function GET() {
   console.log('Fetching inventory for store:', discogsUsername);
 
   try {
-    // Try to fetch store inventory, but fallback to mock data if it fails
+    // Fetch store inventory - only real data
     let data = { listings: [] };
     
     try {
@@ -36,7 +36,7 @@ export async function GET() {
         {
           headers: {
             'User-Agent': 'Rotation/1.0 +https://rotation.app',
-            'Authorization': `Discogs token=${process.env.DISCOGS_TOKEN}`,
+            'Authorization': `Discogs token=${process.env.DISCOGS_USER_TOKEN}`,
           },
         }
       );
@@ -44,14 +44,14 @@ export async function GET() {
       if (response.ok) {
         data = await response.json();
       } else {
-        console.log(`Discogs API returned ${response.status}, using mock data`);
+        console.log(`Discogs API returned ${response.status}`);
       }
     } catch (fetchError) {
-      console.log('Discogs API fetch failed, using mock data:', fetchError);
+      console.log('Discogs API fetch failed:', fetchError);
     }
     
-    // If no real inventory, use mock data for development
-    if (!data.listings || data.listings.length === 0) {
+    // Only use real data - no mock fallback
+    if (false) { // Disabled mock data
       const mockListings = [
         {
           id: "249504",
