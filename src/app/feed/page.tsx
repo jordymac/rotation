@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import ScrollableFeed from '@/components/ScrollableFeed';
+import { FeedTemplate, LoadingTemplate } from '@/components/templates';
 import { DiscogsRelease } from '@/utils/discogs';
 
 interface Store {
@@ -25,120 +25,129 @@ function FeedContent() {
   const searchParams = useSearchParams();
   const storeId = searchParams.get('store');
   
+  // Mock feed state for template
+  const [currentReleaseIndex, setCurrentReleaseIndex] = useState(0);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [isScrolling, setIsScrolling] = useState(false);
+  const [slideDirection, setSlideDirection] = useState<'up' | 'down' | 'left' | 'right' | null>(null);
+  const [currentBgImage, setCurrentBgImage] = useState('');
+  const [nextBgImage, setNextBgImage] = useState('');
+  const [bgTransitioning, setBgTransitioning] = useState(false);
+  const [youtubeVideoId, setYoutubeVideoId] = useState<string | null>(null);
+  const [audioLoading, setAudioLoading] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState({
+    searchQuery: '',
+    minPrice: '',
+    maxPrice: '',
+    format: '',
+    condition: '',
+    genre: '',
+    year: ''
+  });
+
+  // Real releases data
   const [releases, setReleases] = useState<DiscogsRelease[]>([]);
-  const [storeInfo, setStoreInfo] = useState<Store | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadFeedData();
-  }, [storeId]);
+    loadRealReleases();
+  }, [storeId]); // Re-fetch when store changes
 
-  const loadFeedData = async () => {
+  const loadRealReleases = async () => {
     try {
-      setLoading(true);
-      setError(null);
-      
-      if (storeId) {
-        // Load specific store
-        const response = await fetch(`/api/stores/${storeId}/inventory`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to load store inventory');
-        }
-
-        const data: StoreInventoryResponse = await response.json();
-        console.log('Feed data loaded:', {
-          resultsLength: data.results?.length,
-          results: data.results,
-          store: data.store
-        });
+      // Use enhanced feed API that includes approved audio matches
+      const feedEndpoint = storeId ? `/api/feed?store=${storeId}` : '/api/feed';
+      const response = await fetch(feedEndpoint);
+      if (response.ok) {
+        const data = await response.json();
+        console.log(`[Feed] Loaded ${data.results?.length || 0} releases with ${data.audioMatchesCount || 0} audio matches`);
         setReleases(data.results || []);
-        setStoreInfo(data.store);
       } else {
-        // Use general feed as default
-        const generalFeedId = 'general-feed';
-        const inventoryResponse = await fetch(`/api/stores/${generalFeedId}/inventory`);
-        if (inventoryResponse.ok) {
-          const inventoryData: StoreInventoryResponse = await inventoryResponse.json();
-          console.log('Feed data loaded (general feed):', {
-            resultsLength: inventoryData.results?.length,
-            results: inventoryData.results,
-            store: inventoryData.store
-          });
-          setReleases(inventoryData.results || []);
-          setStoreInfo(inventoryData.store);
-        } else {
-          throw new Error('Failed to load general feed');
-        }
+        console.error('Failed to load feed data:', response.status);
+        setReleases([]); // Empty instead of mock data
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load feed');
+    } catch (error) {
+      console.error('Failed to load releases:', error);
+      setReleases([]);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mb-4"></div>
-          <p className="text-lg">Loading your feed...</p>
-        </div>
-      </div>
-    );
+  // Only use real releases data - no mock fallback
+  if (isLoading) {
+    return <div>Loading...</div>;
   }
+  
+  // All mock data removed - only real data used
 
-  if (error) {
-    return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-center">
-          <h1 className="text-2xl font-bold mb-4">Unable to load feed</h1>
-          <p className="text-gray-300 mb-8">{error}</p>
-          <button
-            onClick={() => window.location.href = '/'}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go Home
-          </button>
-        </div>
-      </div>
-    );
-  }
+  const storeInfo = storeId ? {
+    id: storeId,
+    username: storeId
+  } : undefined;
 
-  if (releases.length === 0) {
-    return (
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-center">
-          <h1 className="text-2xl font-bold mb-4">No records found</h1>
-          <p className="text-gray-300 mb-8">
-            {storeInfo ? `${storeInfo.username} has no inventory available.` : 'No stores have been configured yet.'}
-          </p>
-          <button
-            onClick={() => window.location.href = '/'}
-            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Go Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return <ScrollableFeed releases={releases} storeInfo={storeInfo || undefined} />;
+  return (
+    <FeedTemplate
+      releases={releases}
+      currentReleaseIndex={currentReleaseIndex}
+      currentTrackIndex={currentTrackIndex}
+      onReleaseChange={setCurrentReleaseIndex}
+      onTrackChange={setCurrentTrackIndex}
+      isScrolling={isScrolling}
+      onScroll={(direction) => {
+        setIsScrolling(true);
+        setSlideDirection(direction);
+        if (direction === 'down' && currentReleaseIndex < releases.length - 1) {
+          setCurrentReleaseIndex(prev => prev + 1);
+        } else if (direction === 'up' && currentReleaseIndex > 0) {
+          setCurrentReleaseIndex(prev => prev - 1);
+        }
+        setTimeout(() => {
+          setIsScrolling(false);
+          setSlideDirection(null);
+        }, 500);
+      }}
+      onTrackScroll={(direction) => {
+        const currentRelease = releases[currentReleaseIndex];
+        if (!currentRelease?.tracks) return;
+        
+        if (direction === 'right' && currentTrackIndex < currentRelease.tracks.length - 1) {
+          setCurrentTrackIndex(prev => prev + 1);
+        } else if (direction === 'left' && currentTrackIndex > 0) {
+          setCurrentTrackIndex(prev => prev - 1);
+        }
+      }}
+      slideDirection={slideDirection}
+      currentBgImage={currentBgImage}
+      nextBgImage={nextBgImage}
+      bgTransitioning={bgTransitioning}
+      youtubeVideoId={youtubeVideoId}
+      audioLoading={audioLoading}
+      cartCount={cartCount}
+      onAddToCart={() => setCartCount(prev => prev + 1)}
+      showFilters={showFilters}
+      onToggleFilters={() => setShowFilters(!showFilters)}
+      filters={filters}
+      onFiltersChange={setFilters}
+      onClearFilters={() => setFilters({
+        searchQuery: '',
+        minPrice: '',
+        maxPrice: '',
+        format: '',
+        condition: '',
+        genre: '',
+        year: ''
+      })}
+      storeInfo={storeInfo}
+    />
+  );
 }
 
 export default function FeedPage() {
   return (
-    <Suspense fallback={
-      <div className="h-screen bg-black flex items-center justify-center">
-        <div className="text-white text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-white mb-4"></div>
-          <p className="text-lg">Loading your feed...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<LoadingTemplate message="Loading your feed..." />}>
       <FeedContent />
     </Suspense>
   );
