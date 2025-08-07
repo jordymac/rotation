@@ -1,10 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import Header from '@/components/Header';
-import RecordCard from '@/components/RecordCard';
-import RecordManagementModal from '@/components/RecordManagementModal';
+import { useParams } from 'next/navigation';
+import { StoreManagementTemplate } from '@/components/templates';
 import { DiscogsRelease } from '@/utils/discogs';
 
 interface Store {
@@ -23,152 +21,275 @@ interface StoreInventoryResponse {
   store: Store;
 }
 
+interface TrackMatch {
+  trackIndex: number;
+  trackTitle: string;
+  trackPosition: string;
+  candidates: Array<{
+    platform: 'youtube' | 'soundcloud';
+    id: string;
+    title: string;
+    artist: string;
+    duration: number;
+    url: string;
+    confidence: number;
+    classification: 'high' | 'medium' | 'low';
+    source: 'discogs_embedded' | 'youtube_search';
+    approved?: boolean;
+  }>;
+  bestMatch: any;
+  approved?: boolean;
+}
+
 function StorefrontContent() {
   const params = useParams();
-  const router = useRouter();
   const storeId = params.storeId as string;
-  
-  // Always in seller mode for management interface
-  const isSellerMode = true;
   
   const [storeData, setStoreData] = useState<StoreInventoryResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    minPrice: '',
-    maxPrice: '',
-    format: '',
-    condition: '',
-    genre: '',
-    year: '',
-    // Seller-specific filters
-    status: '', // active, inactive, sold, draft
-    verification: '', // verified, needs_review, unverified
-    performance: '' // high_views, low_views, recent_inquiries
-  });
-  // Always use list view for seller management
-  const viewMode = 'list';
-  const [showFilters, setShowFilters] = useState(false);
-  const [showVerification, setShowVerification] = useState(false);
-  const [selectedRecord, setSelectedRecord] = useState<DiscogsRelease | null>(null);
-  const [selectedRecordIndex, setSelectedRecordIndex] = useState<number>(0);
-  const [showManagementModal, setShowManagementModal] = useState(false);
-  const [modalInitialTab, setModalInitialTab] = useState<'details' | 'tracks' | 'pricing'>('details');
-
+  const [selectedRelease, setSelectedRelease] = useState<DiscogsRelease | undefined>();
+  const [trackMatches, setTrackMatches] = useState<TrackMatch[]>([]);
+  const [trackMatchesByRelease, setTrackMatchesByRelease] = useState<Record<number, Array<{
+    trackIndex: number;
+    approved?: boolean;
+    candidates?: Array<{ confidence: number; }>;
+  }>>>({});
   useEffect(() => {
     loadStoreInventory();
   }, [storeId]);
 
-  const handleManageItem = (release: DiscogsRelease) => {
-    const index = filteredReleases.findIndex(r => r.id === release.id);
-    setSelectedRecord(release);
-    setSelectedRecordIndex(index >= 0 ? index : 0);
-    setModalInitialTab('details');
-    setShowManagementModal(true);
-  };
+  // Removed handleManageItem since we no longer have the manage functionality
 
-  const handleVerifyAudio = (release: DiscogsRelease) => {
-    const index = filteredReleases.findIndex(r => r.id === release.id);
-    setSelectedRecord(release);
-    setSelectedRecordIndex(index >= 0 ? index : 0);
-    setModalInitialTab('tracks');
-    setShowManagementModal(true);
+  const handleVerifyAudio = async (release: DiscogsRelease) => {
+    console.log(`Manual verify audio for release: ${release.title}`);
+    console.log(`Release has ${release.tracks?.length || 0} tracks`);
+    setSelectedRelease(release);
+    
+    // Always fetch fresh detailed track match data for the modal
+    // The listing view uses summary data, but the modal needs full candidate details
+    console.log(`Fetching detailed track matches for modal display`);
+    await generateRealTrackMatches(release);
   };
   
-  // Simple seeded random function for consistent results
-  const seededRandom = (seed: number) => {
-    const x = Math.sin(seed) * 10000;
-    return x - Math.floor(x);
-  };
+  const generateRealTrackMatches = async (release: DiscogsRelease) => {
+    if (!release.tracks || release.tracks.length === 0) {
+      console.log(`No tracks found for ${release.title}`);
+      setTrackMatches([]);
+      return;
+    }
 
-  // Enhanced track data generation - same logic as modal
-  const generateEnhancedTracks = (release: DiscogsRelease) => {
-    // Use real track data from the release if available, otherwise create minimal fallback
-    const baseTracks = release.tracks && release.tracks.length > 0 
-      ? release.tracks 
-      : [
-          { position: 'A1', title: release.title, duration: '3:30' },
-          { position: 'A2', title: `${release.title} (Alternate)`, duration: '3:45' }
-        ];
+    console.log(`Generating audio matches for ${release.title} (${release.tracks.length} tracks)`);
     
-    return baseTracks.map((track, index) => {
-      // Use release ID and track index as seed for consistent results
-      const seed = release.id * 1000 + index;
-      
-      // Mock audio matching data - in production this would come from audio matching service
-      const mockAudioData = {
-        hasAudio: seededRandom(seed) > 0.2, // 80% chance of having audio
-        platforms: [] as string[],
-        matchQuality: 'medium' as 'high' | 'medium' | 'low'
-      };
-      
-      // Randomly assign platforms for tracks that have audio
-      if (mockAudioData.hasAudio) {
-        const allPlatforms = ['youtube', 'spotify', 'apple', 'soundcloud'];
-        const numPlatforms = Math.floor(seededRandom(seed + 1) * 3) + 1; // 1-3 platforms
-        const shuffled = [...allPlatforms].sort(() => 0.5 - seededRandom(seed + 2));
-        mockAudioData.platforms = shuffled.slice(0, numPlatforms);
+    try {
+      // Call the real API to get audio matches (GET endpoint handles full release)
+      const response = await fetch(`/api/admin/releases/${release.id}/audio-match`);
+
+      if (!response.ok) {
+        throw new Error(`Audio matching API error: ${response.status}`);
+      }
+
+      const audioMatchData = await response.json();
+      const totalCandidates = audioMatchData.data.matches.reduce((sum: number, match: any) => sum + (match.candidates?.length || 0), 0);
+      console.log(`Found ${audioMatchData.data.matches.length} tracks with ${totalCandidates} total audio candidates`);
+
+      // Transform the API response to match our TrackMatch interface
+      const matches: TrackMatch[] = audioMatchData.data.matches.map((match: any) => {
+        // Auto-approve the highest confidence match
+        const sortedCandidates = match.candidates.sort((a: any, b: any) => b.confidence - a.confidence);
+        const bestCandidate = sortedCandidates[0];
         
-        // Higher quality if more platforms
-        if (mockAudioData.platforms.length >= 3) {
-          mockAudioData.matchQuality = 'high';
-        } else if (mockAudioData.platforms.length >= 2) {
-          mockAudioData.matchQuality = 'medium';
-        } else {
-          mockAudioData.matchQuality = seededRandom(seed + 3) > 0.5 ? 'medium' : 'low';
-        }
-      } else {
-        mockAudioData.matchQuality = 'low';
+        const processedCandidates = match.candidates.map((candidate: any) => ({
+          platform: candidate.platform,
+          id: candidate.id,
+          title: candidate.title,
+          artist: candidate.artist,
+          duration: candidate.duration,
+          url: candidate.url,
+          confidence: candidate.confidence,
+          classification: candidate.classification,
+          source: candidate.source,
+          approved: candidate.id === bestCandidate?.id // Auto-approve highest confidence
+        }));
+
+        // Process track match data
+        
+        return {
+          trackIndex: match.trackIndex,
+          trackTitle: match.trackTitle,
+          trackPosition: match.trackPosition,
+          candidates: processedCandidates,
+          bestMatch: bestCandidate,
+          approved: sortedCandidates.length > 0 // Track is approved if it has any matches
+        };
+      });
+
+      setTrackMatches(matches);
+      
+      // Also store the matches by release ID for the list view
+      const trackMatchesForRelease = matches.map(match => ({
+        trackIndex: match.trackIndex,
+        approved: match.approved,
+        candidates: match.candidates.map(c => ({ confidence: c.confidence }))
+      }));
+      
+      setTrackMatchesByRelease(prev => ({
+        ...prev,
+        [release.id]: trackMatchesForRelease
+      }));
+      
+      console.log(`Generated ${matches.length} track matches`);
+
+    } catch (error) {
+      console.error('Error generating audio matches:', error);
+      // Fallback to empty matches on error
+      setTrackMatches([]);
+    }
+  };
+
+  const handleApproveMatch = async (trackIndex: number, candidateId: string) => {
+    console.log('Approve match:', trackIndex, candidateId);
+    
+    if (!selectedRelease) return;
+    
+    // Find the candidate being approved
+    const trackMatch = trackMatches.find(m => m.trackIndex === trackIndex);
+    const candidate = trackMatch?.candidates.find(c => c.id === candidateId);
+    
+    if (!candidate) {
+      console.error('Candidate not found for approval');
+      return;
+    }
+    
+    try {
+      // Save to database via API
+      const response = await fetch(`/api/admin/releases/${selectedRelease.id}/approve-match`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          trackIndex,
+          platform: candidate.platform,
+          url: candidate.url,
+          confidence: candidate.confidence,
+          action: 'approve'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Match approved and saved to database:', result);
+      
+      // Update UI state after successful database save
+      setTrackMatches(prevMatches => 
+        prevMatches.map(match => {
+          if (match.trackIndex === trackIndex) {
+            // Find the approved candidate
+            const approvedCandidate = match.candidates.find(c => c.id === candidateId);
+            return {
+              ...match,
+              approved: true,
+              bestMatch: approvedCandidate,
+              candidates: match.candidates.map(c => ({
+                ...c,
+                // Only the selected candidate is approved
+                approved: c.id === candidateId
+              }))
+            };
+          }
+          return match;
+        })
+      );
+
+      // Also update the trackMatchesByRelease state
+      if (selectedRelease) {
+        setTrackMatchesByRelease(prev => ({
+          ...prev,
+          [selectedRelease.id]: prev[selectedRelease.id]?.map(match => 
+            match.trackIndex === trackIndex 
+              ? { ...match, approved: true }
+              : match
+          ) || []
+        }));
       }
       
-      return {
-        position: track.position,
-        title: track.title,
-        duration: track.duration || '3:30', // Fallback duration
-        artists: track.artists,
-        ...mockAudioData
-      };
-    });
+    } catch (error) {
+      console.error('Error approving match:', error);
+      // TODO: Show error message to user
+    }
   };
 
-  const handleNextUnverified = () => {
-    // Find next unverified record using the same logic as the modal
-    const needsVerification = (release: DiscogsRelease) => {
-      const releaseTracks = generateEnhancedTracks(release);
-      const tracksWithAudio = releaseTracks.filter(t => t.hasAudio).length;
-      const audioPercentage = Math.round((tracksWithAudio / releaseTracks.length) * 100);
-      return audioPercentage < 80;
-    };
+  const handleRejectMatch = async (trackIndex: number, candidateId: string) => {
+    console.log('Reject match:', trackIndex, candidateId);
     
-    // Find next unverified release
-    for (let i = selectedRecordIndex + 1; i < filteredReleases.length; i++) {
-      if (needsVerification(filteredReleases[i])) {
-        setSelectedRecord(filteredReleases[i]);
-        setSelectedRecordIndex(i);
-        return;
+    if (!selectedRelease) return;
+    
+    try {
+      // Remove from database via API
+      const response = await fetch(`/api/admin/releases/${selectedRelease.id}/approve-match`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          trackIndex,
+          platform: 'none', // Not needed for reject
+          url: '',           // Not needed for reject
+          confidence: 0,     // Not needed for reject
+          action: 'reject'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
-    }
-    
-    // If no unverified found after current, search from beginning
-    for (let i = 0; i < selectedRecordIndex; i++) {
-      if (needsVerification(filteredReleases[i])) {
-        setSelectedRecord(filteredReleases[i]);
-        setSelectedRecordIndex(i);
-        return;
+
+      const result = await response.json();
+      console.log('Match rejected and removed from database:', result);
+      
+      // Update UI state after successful database operation
+      setTrackMatches(prevMatches => 
+        prevMatches.map(match => {
+          if (match.trackIndex === trackIndex) {
+            return {
+              ...match,
+              approved: false,
+              bestMatch: null,
+              candidates: match.candidates.map(candidate => ({
+                ...candidate,
+                approved: false
+              }))
+            };
+          }
+          return match;
+        })
+      );
+
+      // Also update the trackMatchesByRelease state
+      if (selectedRelease) {
+        setTrackMatchesByRelease(prev => ({
+          ...prev,
+          [selectedRelease.id]: prev[selectedRelease.id]?.map(match => 
+            match.trackIndex === trackIndex 
+              ? { ...match, approved: false }
+              : match
+          ) || []
+        }));
       }
+      
+    } catch (error) {
+      console.error('Error rejecting match:', error);
+      // TODO: Show error message to user
     }
-    
-    // No more unverified records, close modal
-    setShowManagementModal(false);
-    setSelectedRecord(null);
   };
 
-  const handleSaveRecord = (updatedRelease: Partial<DiscogsRelease>) => {
-    // TODO: Implement save functionality to update the record in the backend
-    console.log('Saving record updates:', updatedRelease);
-    // For now, just log the changes. In production, this would update the record
-    // and refresh the inventory list
+  const handleProvideCorrectVideo = (trackIndex: number, candidateId: string, newUrl: string) => {
+    console.log('Provide correct video:', { trackIndex, candidateId, newUrl });
+    // TODO: Implement the logic to update the track match with the correct video
   };
 
   const loadStoreInventory = async () => {
@@ -189,6 +310,16 @@ function StorefrontContent() {
 
       const data = await response.json();
       setStoreData(data);
+      
+      // After loading inventory, automatically generate track matches for all releases in the background
+      if (data.results && data.results.length > 0) {
+        console.log(`Auto-generating track matches for ${data.results.length} releases...`);
+        // Run background loading without blocking the UI
+        loadTrackMatchesForAllReleases(data.results).catch(error => {
+          console.error('Background track matching failed:', error);
+        });
+      }
+      
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load store inventory');
     } finally {
@@ -196,480 +327,112 @@ function StorefrontContent() {
     }
   };
 
-  const filteredReleases = storeData?.results.filter(release => {
-    // Search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const matchesSearch = 
-        release.title.toLowerCase().includes(query) ||
-        release.artist.toLowerCase().includes(query) ||
-        release.label.toLowerCase().includes(query);
-      if (!matchesSearch) return false;
+  const loadTrackMatchesForAllReleases = async (releases: DiscogsRelease[]) => {
+    // Process only first few releases to avoid overwhelming the system
+    const limitedReleases = releases.slice(0, 5); // Only auto-load first 5 releases
+    console.log(`Auto-loading track matches for first ${limitedReleases.length} releases (out of ${releases.length} total)`);
+    
+    // Process one at a time with longer delays
+    for (const release of limitedReleases) {
+      try {
+        console.log(`Auto-loading track matches for: ${release.title} by ${release.artist}`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const response = await fetch(`/api/admin/releases/${release.id}/audio-match`, {
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (!response.ok) {
+          console.warn(`Failed to load track matches for release ${release.id}: ${response.status}`);
+          continue;
+        }
+        
+        const audioMatchData = await response.json();
+        
+        if (audioMatchData.data?.matches) {
+          // Transform the API response to match our TrackMatch interface
+          const matches = audioMatchData.data.matches.map((match: any) => {
+            const sortedCandidates = match.candidates.sort((a: any, b: any) => b.confidence - a.confidence);
+            const bestCandidate = sortedCandidates[0];
+            
+            return {
+              trackIndex: match.trackIndex,
+              approved: bestCandidate?.confidence >= 85, // Auto-approve high confidence matches
+              candidates: match.candidates.map((c: any) => ({ confidence: c.confidence }))
+            };
+          });
+          
+          // Update the trackMatchesByRelease state - even if matches array is empty
+          setTrackMatchesByRelease(prev => ({
+            ...prev,
+            [release.id]: matches
+          }));
+          
+          console.log(`Loaded ${matches.length} track matches for release ${release.id} (${audioMatchData.data.summary.totalMatched} with audio found)`);
+        } else {
+          // No matches data - still update state to indicate processing is complete
+          setTrackMatchesByRelease(prev => ({
+            ...prev,
+            [release.id]: [] // Empty array indicates no matches found but processing complete
+          }));
+          
+          console.log(`No track matches found for release ${release.id}`);
+        }
+        
+        // Longer delay between requests to be more respectful
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+      } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.warn(`Track matching request timed out for release ${release.id}`);
+        } else {
+          console.error(`Error loading track matches for release ${release.id}:`, error instanceof Error ? error.message : 'Unknown error');
+        }
+      }
     }
+    
+    console.log('Finished auto-loading track matches for initial releases');
+  };
 
-    // Price filter
-    if (filters.minPrice || filters.maxPrice) {
-      const price = release.price ? parseFloat(release.price.split(' ')[1]) : 0;
-      if (filters.minPrice && price < parseFloat(filters.minPrice)) return false;
-      if (filters.maxPrice && price > parseFloat(filters.maxPrice)) return false;
-    }
-
-    // Format filter
-    if (filters.format && !release.genre.some(g => g.toLowerCase().includes(filters.format.toLowerCase()))) {
-      return false;
-    }
-
-    // Condition filter
-    if (filters.condition && release.condition && !release.condition.toLowerCase().includes(filters.condition.toLowerCase())) {
-      return false;
-    }
-
-    // Year filter
-    if (filters.year && release.year.toString() !== filters.year) {
-      return false;
-    }
-
-    return true;
-  }) || [];
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white">
-        <Header />
-        <div className="flex justify-center items-center min-h-64">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-        </div>
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black text-white">
-        <Header />
-        <div className="container mx-auto px-4 py-12 text-center">
+      <div className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
           <h1 className="text-3xl font-bold text-white mb-4">Store Not Found</h1>
           <p className="text-red-400 mb-8">{error}</p>
-          <button
-            onClick={() => router.back()}
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-          >
-            Go Back
-          </button>
         </div>
       </div>
     );
   }
 
+  if (!storeData) {
+    return null;
+  }
+
   return (
-    <div className="min-h-screen bg-black text-white">
-      <Header />
-      <div className="container mx-auto px-4 py-8">
-        {/* Store Header */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-6 mb-8">
-          <div className="flex justify-between items-start">
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                {storeData?.store.username} - Store Management
-              </h1>
-              <p className="text-white/70 mb-4">
-                Managing {storeData?.pagination.items} inventory items
-              </p>
-              <div className="flex gap-4">
-                <a
-                  href={`/feed?store=${storeId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-green-600 text-white px-4 py-2 rounded text-sm hover:bg-green-700 transition-colors"
-                >
-                  📱 View Public Feed
-                </a>
-                <a
-                  href={`https://www.discogs.com/user/${storeData?.store.username}/inventory`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-800 text-sm"
-                >
-                  View on Discogs →
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Seller Dashboard Stats */}
-          <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-4 pt-6 border-t border-white/20">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-400">{storeData?.pagination.items || 0}</div>
-              <div className="text-sm text-white/60">Total Items</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-400">0</div>
-              <div className="text-sm text-white/60">Needs Review</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-400">0</div>
-              <div className="text-sm text-white/60">Recent Views</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-400">0</div>
-              <div className="text-sm text-white/60">This Month Sales</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Search and Filters Accordion */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 mb-8">
-          {/* Accordion Header */}
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/20 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-white">Search & Filters</h2>
-              {(searchQuery || Object.values(filters).some(filter => filter !== '')) && (
-                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
-                  Active
-                </span>
-              )}
-            </div>
-            <div className={`transform transition-transform duration-200 ${showFilters ? 'rotate-180' : ''}`}>
-              <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </button>
-
-          {/* Accordion Content */}
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            showFilters ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-          }`}>
-            <div className="px-6 pb-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-                {/* Search */}
-                <div className="lg:col-span-2">
-                  <input
-                    type="text"
-                    placeholder="Search by artist, title, or label..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:outline-none focus:border-white/40"
-                  />
-                </div>
-                
-                {/* Price Range */}
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="Min $"
-                    value={filters.minPrice}
-                    onChange={(e) => setFilters({...filters, minPrice: e.target.value})}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:outline-none focus:border-white/40"
-                  />
-                  <input
-                    type="number"
-                    placeholder="Max $"
-                    value={filters.maxPrice}
-                    onChange={(e) => setFilters({...filters, maxPrice: e.target.value})}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:outline-none focus:border-white/40"
-                  />
-                </div>
-
-                {/* Format */}
-                <select
-                  value={filters.format}
-                  onChange={(e) => setFilters({...filters, format: e.target.value})}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:border-white/40"
-                >
-                  <option value="">All Formats</option>
-                  <option value="vinyl">Vinyl</option>
-                  <option value="cd">CD</option>
-                  <option value="cassette">Cassette</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Condition */}
-                <select
-                  value={filters.condition}
-                  onChange={(e) => setFilters({...filters, condition: e.target.value})}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:border-white/40"
-                >
-                  <option value="">All Conditions</option>
-                  <option value="mint">Mint (M)</option>
-                  <option value="near mint">Near Mint (NM)</option>
-                  <option value="very good plus">Very Good Plus (VG+)</option>
-                  <option value="very good">Very Good (VG)</option>
-                </select>
-
-                {/* Year */}
-                <input
-                  type="number"
-                  placeholder="Year"
-                  value={filters.year}
-                  onChange={(e) => setFilters({...filters, year: e.target.value})}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white placeholder-white/50 focus:outline-none focus:border-white/40"
-                />
-
-                {/* Clear Filters */}
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setFilters({
-                      minPrice: '',
-                      maxPrice: '',
-                      format: '',
-                      condition: '',
-                      genre: '',
-                      year: '',
-                      status: '',
-                      verification: '',
-                      performance: ''
-                    });
-                  }}
-                  className="px-4 py-2 text-white/70 hover:text-white border border-white/20 rounded-md hover:bg-white/20 transition-colors"
-                >
-                  Clear Filters
-                </button>
-              </div>
-
-              {/* Management Filters */}
-              <div className="mt-4 pt-4 border-t border-white/20">
-                <h3 className="text-sm font-medium text-white/80 mb-3">Management Filters</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Status Filter */}
-                  <select
-                    value={filters.status}
-                    onChange={(e) => setFilters({...filters, status: e.target.value})}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:border-white/40"
-                  >
-                    <option value="">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="sold">Sold</option>
-                    <option value="draft">Draft</option>
-                  </select>
-
-                  {/* Verification Filter */}
-                  <select
-                    value={filters.verification}
-                    onChange={(e) => setFilters({...filters, verification: e.target.value})}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:border-white/40"
-                  >
-                    <option value="">All Verification</option>
-                    <option value="verified">✅ Verified</option>
-                    <option value="needs_review">⚠️ Needs Review</option>
-                    <option value="unverified">❌ Unverified</option>
-                  </select>
-
-                  {/* Performance Filter */}
-                  <select
-                    value={filters.performance}
-                    onChange={(e) => setFilters({...filters, performance: e.target.value})}
-                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded-md text-white focus:outline-none focus:border-white/40"
-                  >
-                    <option value="">All Performance</option>
-                    <option value="high_views">🔥 High Views</option>
-                    <option value="recent_inquiries">💬 Recent Inquiries</option>
-                    <option value="low_activity">📉 Low Activity</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Verification Queue Accordion */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 mb-8">
-          {/* Accordion Header */}
-          <button
-            onClick={() => setShowVerification(!showVerification)}
-            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-white/20 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-semibold text-white">Verification Queue</h2>
-              <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium">
-                3 items need review
-              </span>
-            </div>
-            <div className={`transform transition-transform duration-200 ${showVerification ? 'rotate-180' : ''}`}>
-              <svg className="w-5 h-5 text-white/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </button>
-
-          {/* Accordion Content */}
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            showVerification ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-          }`}>
-            <div className="px-6 pb-6">
-              <div className="space-y-3">
-                {/* Mock verification items */}
-                <div className="flex items-center justify-between p-3 bg-yellow-500/20 border border-yellow-500/30 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="text-yellow-400">⚠️</span>
-                    <div>
-                      <div className="font-medium text-white">Michael Jackson - Thriller</div>
-                      <div className="text-sm text-white/60">Metadata mismatch: Year (1982 vs 1983)</div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors">
-                      Approve
-                    </button>
-                    <button className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors">
-                      Review
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="text-red-400">❌</span>
-                    <div>
-                      <div className="font-medium text-white">Pink Floyd - Dark Side of the Moon</div>
-                      <div className="text-sm text-white/60">Image quality too low for verification</div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
-                      Re-scan
-                    </button>
-                    <button className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors">
-                      Manual Review
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 bg-green-500/20 border border-green-500/30 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <span className="text-green-400">✅</span>
-                    <div>
-                      <div className="font-medium text-white">Annihilator - Never, Neverland</div>
-                      <div className="text-sm text-white/60">Successfully verified and matched</div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded border border-green-500/30">
-                      Verified
-                    </span>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mt-4 text-center">
-                <button className="text-blue-400 hover:text-blue-300 text-sm">
-                  View All Verification History →
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Bulk Actions */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-4 mb-6">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-white/70">Bulk Actions:</span>
-                <div className="flex gap-2">
-                  <button className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors">
-                    Update Prices
-                  </button>
-                  <button className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors">
-                    Mark as Active
-                  </button>
-                  <button className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors">
-                    Mark as Inactive
-                  </button>
-                  <button className="px-3 py-1 bg-orange-600 text-white text-sm rounded hover:bg-orange-700 transition-colors">
-                    Request Verification
-                  </button>
-                </div>
-              </div>
-              <div className="text-sm text-white/60">
-                0 items selected
-              </div>
-            </div>
-          </div>
-
-        {/* Results */}
-        <div className="mb-4 text-white/70">
-          Showing {Math.min(filteredReleases.length, 10)} of {storeData?.pagination.items} items
-          {filteredReleases.length > 10 && (
-            <span className="text-orange-400"> (limited to 10 for development)</span>
-          )}
-          <span className="ml-4 text-blue-400">
-            • {Math.floor(Math.min(filteredReleases.length, 10) * 0.8)} active • {Math.ceil(Math.min(filteredReleases.length, 10) * 0.15)} need review • {Math.ceil(Math.min(filteredReleases.length, 10) * 0.05)} inactive
-          </span>
-        </div>
-
-        {/* Inventory List */}
-        {filteredReleases.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-white/60 mb-4">
-              No items match your search criteria.
-            </p>
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setFilters({
-                  minPrice: '',
-                  maxPrice: '',
-                  format: '',
-                  condition: '',
-                  genre: '',
-                  year: '',
-                  status: '',
-                  verification: '',
-                  performance: ''
-                });
-              }}
-              className="text-blue-400 hover:text-blue-300"
-            >
-              Clear all filters
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Limit to 10 records for testing */}
-            {filteredReleases.slice(0, 10).map((release) => (
-              <RecordCard 
-                key={release.id} 
-                release={release} 
-                viewMode={viewMode}
-                isSellerMode={isSellerMode}
-                onManageItem={handleManageItem}
-                onVerifyAudio={handleVerifyAudio}
-              />
-            ))}
-            {filteredReleases.length > 10 && (
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 p-6 text-center">
-                <p className="text-white/70">
-                  Showing first 10 of {filteredReleases.length} items (limited for development)
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Record Management Modal */}
-      {selectedRecord && (
-        <RecordManagementModal
-          release={selectedRecord}
-          isOpen={showManagementModal}
-          onClose={() => {
-            setShowManagementModal(false);
-            setSelectedRecord(null);
-          }}
-          onSave={handleSaveRecord}
-          onNextUnverified={handleNextUnverified}
-          allReleases={filteredReleases}
-          currentReleaseIndex={selectedRecordIndex}
-          initialTab={modalInitialTab}
-        />
-      )}
-    </div>
+    <StoreManagementTemplate
+      storeName={storeData.store.username}
+      releases={storeData.results || []}
+      onVerifyAudio={handleVerifyAudio}
+      trackMatches={trackMatches}
+      trackMatchesByRelease={trackMatchesByRelease}
+      onApproveMatch={handleApproveMatch}
+      onRejectMatch={handleRejectMatch}
+      onProvideCorrectVideo={handleProvideCorrectVideo}
+    />
   );
 }
 

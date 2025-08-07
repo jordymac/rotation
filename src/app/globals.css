@@ -217,3 +217,47 @@ body {
 .animate-dot-anticipate {
   animation: dot-anticipate 1.5s ease-in-out infinite;
 }
+
+/* YouTube Audio Player Styles */
+.youtube-audio-player .slider {
+  -webkit-appearance: none;
+  appearance: none;
+  outline: none;
+  cursor: pointer;
+}
+
+.youtube-audio-player .slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.youtube-audio-player .slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: white;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.youtube-audio-player .slider:disabled {
+  cursor: not-allowed;
+}
+
+.youtube-audio-player .slider:disabled::-webkit-slider-thumb {
+  background: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+}
+
+.youtube-audio-player .slider:disabled::-moz-range-thumb {
+  background: rgba(255, 255, 255, 0.5);
+  cursor: not-allowed;
+}

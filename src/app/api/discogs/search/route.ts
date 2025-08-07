@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(url.toString(), {
       headers: {
         'User-Agent': 'Rotation/1.0 +https://rotation.app',
-        'Authorization': `Discogs token=${process.env.DISCOGS_TOKEN}`,
+        'Authorization': `Discogs token=${process.env.DISCOGS_USER_TOKEN}`,
       },
     });
 
