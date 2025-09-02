@@ -17,6 +17,8 @@ import { LabelYearInfo } from './LabelYearInfo';
 import { GenresStylesTags } from './GenresStylesTags';
 import { PriceCondition } from './PriceCondition';
 import { ActionButtons } from './ActionButtons';
+import { VideoScrubber } from './VideoScrubber';
+import { AutoplayVideoPlayer } from './AutoplayVideoPlayer';
 
 interface RecordCardProps {
   release: DiscogsRelease;
@@ -46,6 +48,9 @@ interface RecordCardProps {
       confidence: number;
     }>;
   }>;
+  index?: number; // For priority loading
+  currentIndex?: number; // Current position (1-based)
+  totalCount?: number; // Total number of records
 }
 
 // Calculate verification status for list view
@@ -102,7 +107,10 @@ export const RecordCard: React.FC<RecordCardProps> = ({
   isScrolling = false,
   youtubeVideoId,
   audioLoading,
-  trackMatches
+  trackMatches,
+  index,
+  currentIndex,
+  totalCount
 }) => {
   const verificationStatus = calculateVerificationStatus(release, trackMatches);
 
@@ -117,6 +125,8 @@ export const RecordCard: React.FC<RecordCardProps> = ({
               alt={`${release.artist} - ${release.title}`}
               size="sm"
               className="w-24 h-[112px]"
+              priority={index !== undefined && index < 6}
+              sizes="(max-width: 768px) 100vw, 96px"
             />
           </div>
           
@@ -243,130 +253,97 @@ export const RecordCard: React.FC<RecordCardProps> = ({
     );
   }
 
-  // Grid View (default)
+  // Grid View - Mobile 9:16 Feed Card
   return (
-    <Card className="w-full max-w-72 sm:max-w-80 mx-auto flex flex-col h-full">
-      {/* Album Artwork with Track Navigation */}
-      <div className="relative flex-shrink-0 mb-3 sm:mb-4 mx-auto aspect-square max-h-48 sm:max-h-64 max-w-48 sm:max-w-full">
-        <AlbumArtwork
-          imageUrl={release.thumb}
-          alt={`${release.artist} - ${release.title}`}
-          size="lg"
-          className="w-full h-full"
-        />
-        
-        {/* Track Navigation Dots */}
-        {tracks && tracks.length > 1 && onTrackChange && (
-          <div className="absolute bottom-3 left-1/2 transform -translate-x-1/2 w-full max-w-full px-4">
-            <div className="bg-black/20 rounded-full px-4 py-1 backdrop-blur-sm max-w-full">
-              <div className="flex justify-center gap-2 py-1">
-                {tracks.slice(0, 5).map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => !isScrolling && onTrackChange(index)}
-                    className={`w-2 h-2 rounded-full transition-all duration-300 flex-shrink-0 ${
-                      index === currentTrackIndex 
-                        ? 'bg-white scale-125' 
-                        : 'bg-white/60 hover:bg-white/80'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
+    <Card 
+      className="w-full max-w-sm mx-auto flex flex-col" 
+      style={{ aspectRatio: '9 / 16' }}
+    >
+      {/* Video Region - Fixed 16:9 */}
+      <div className="relative w-full bg-black rounded-t-lg overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
+        {youtubeVideoId ? (
+          <AutoplayVideoPlayer
+            videoId={youtubeVideoId}
+            title={`${release.artist} - ${release.title}`}
+          />
+        ) : audioLoading ? (
+          <div className="w-full h-full flex items-center justify-center bg-gray-800">
+            <div className="text-white/60">Loading video...</div>
+          </div>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-800">
+            <div className="text-white/60">Video Placeholder</div>
           </div>
         )}
       </div>
       
-      {/* Record Details */}
-      <div className="flex-1 flex flex-col px-2">
-        {/* Current Track Info */}
-        {showTrackInfo && currentTrack && (
-          <TrackInfo
-            title={currentTrack.title}
-            position={currentTrack.position}
-            duration={currentTrack.duration}
-            className="mb-3"
-          />
-        )}
+      {/* Details Section */}
+      <div className="flex-1 flex flex-col p-4 space-y-3">
+        {/* Track Title (emphasized) */}
+        <h2 className="text-lg font-bold text-white leading-tight">
+          {currentTrack?.title || release.title}
+        </h2>
         
-        {/* Artist & Album */}
-        <ArtistAlbumInfo
-          artist={release.artist}
-          title={release.title}
-          className="mb-3"
-        />
+        {/* Artist (smaller) */}
+        <p className="text-base text-white/80 font-medium">
+          {release.artist}
+        </p>
         
-        {/* Label | Year | Country */}
-        <LabelYearInfo
-          label={release.label}
-          year={release.year}
-          country={release.country}
-          className="mb-3"
-        />
+        {/* Album (smaller) */}
+        <p className="text-sm text-white/60">
+          {release.title}
+        </p>
         
-        {/* Genres & Styles */}
-        <GenresStylesTags
-          genres={release.genre || []}
-          styles={release.style || []}
-          className="mb-4"
-        />
+        {/* Genres - Multiple Badge Pills */}
+        <div className="flex flex-wrap gap-1">
+          {(release.genre || []).concat(release.style || []).slice(0, 4).map((genre, index) => (
+            <Badge key={index} variant="secondary" className="text-xs px-2 py-1 bg-white/20 text-white/80">
+              {genre}
+            </Badge>
+          ))}
+        </div>
         
-        {/* Audio Player */}
-        {showTrackInfo && (
-          <div className="mb-4">
-            {youtubeVideoId ? (
-              <AudioPlayerControls
-                videoId={youtubeVideoId}
-                autoplay={false}
-                onError={(error) => console.error('YouTube player error:', error)}
-              />
-            ) : audioLoading ? (
-              <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                    <div className="w-4 h-4 bg-white/60 rounded-full animate-pulse" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between text-xs text-white/60 mb-1">
-                      <span>Loading...</span>
-                      <span>--:--</span>
-                    </div>
-                    <div className="w-full h-2 bg-white/20 rounded-full">
-                      <div className="h-full w-0 bg-white/60 rounded-full" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="bg-white/10 rounded-lg p-3 backdrop-blur-sm opacity-60">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white/60">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 715.636 5.636m12.728 12.728L5.636 5.636" />
-                    </svg>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between text-xs text-white/60 mb-1">
-                      <span>No audio</span>
-                      <span>{currentTrack?.duration || "3:45"}</span>
-                    </div>
-                    <div className="w-full h-2 bg-white/20 rounded-full">
-                      <div className="h-full w-0 bg-white/40 rounded-full" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
+        {/* Meta Row: Year • Track # • Time */}
+        <div className="text-sm text-white/60 flex items-center gap-2">
+          <span>{release.year}</span>
+          <span>•</span>
+          <span>Track {currentTrackIndex + 1}</span>
+          <span>•</span>
+          <span>{currentTrack?.duration || '4:45'}</span>
+        </div>
+        
+        {/* Price (large) + Condition (small) */}
+        <div className="space-y-1">
+          <div className="text-2xl font-bold text-white">
+            {release.price || '$24.99'}
           </div>
-        )}
+          <div className="text-sm text-white/60">
+            {release.condition || 'VG+'} / {release.sleeve_condition || 'Sleeve VG'}
+          </div>
+        </div>
         
-        {/* Price and Condition */}
-        <div className="mt-auto">
-          <PriceCondition
-            condition={release.condition}
-            sleeveCondition={release.sleeve_condition}
-            price={release.price}
-          />
+        {/* CTAs: Wishlist (secondary) and Buy Now */}
+        <div className="flex gap-3 mt-auto">
+          <Button
+            variant="outline"
+            className="flex-1 bg-white/20 hover:bg-white/30 text-white border-white/30"
+          >
+            <HeartIcon className="w-4 h-4 mr-2" />
+            Wishlist
+          </Button>
+          <Button
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            asChild
+          >
+            <a
+              href={release.listingUri || `https://www.discogs.com${release.uri}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ShoppingCartIcon className="w-4 h-4 mr-2" />
+              Buy Now
+            </a>
+          </Button>
         </div>
       </div>
     </Card>

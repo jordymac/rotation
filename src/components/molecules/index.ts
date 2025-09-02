@@ -3,9 +3,13 @@
 // Audio & Media
 export { AudioPlayerControls } from './AudioPlayerControls';
 export { AlbumArtwork } from './AlbumArtwork';
+export { YouTubePreview } from './YouTubePreview';
+export { VideoScrubber } from './VideoScrubber';
+export { AutoplayVideoPlayer } from './AutoplayVideoPlayer';
 
 // Record Card Components
 export { RecordCard } from './RecordCard';
+export { FeedCardSkeleton } from './FeedCardSkeleton';
 export { TrackInfo } from './TrackInfo';
 export { ArtistAlbumInfo } from './ArtistAlbumInfo';
 export { LabelYearInfo } from './LabelYearInfo';
