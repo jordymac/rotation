@@ -1,4 +1,4 @@
-import { getDb } from './db';
+import { getDatabase } from './db';
 
 interface Store {
   id: string;
@@ -9,7 +9,7 @@ interface Store {
 export const dbStores = {
   async getAll(): Promise<Store[]> {
     try {
-      const db = await getDb();
+      const db = await getDatabase();
       
       // Create stores table if it doesn't exist
       await db.none(`
@@ -34,7 +34,7 @@ export const dbStores = {
   },
 
   async add(username: string): Promise<Store> {
-    const db = await getDb();
+    const db = await getDatabase();
     
     // Create stores table if it doesn't exist
     await db.none(`
@@ -57,7 +57,7 @@ export const dbStores = {
 
   async remove(id: string): Promise<boolean> {
     try {
-      const db = await getDb();
+      const db = await getDatabase();
       const result = await db.result('DELETE FROM admin_stores WHERE id = $1', [id]);
       return result.rowCount > 0;
     } catch (error) {
