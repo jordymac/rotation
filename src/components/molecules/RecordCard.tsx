@@ -6,7 +6,9 @@ import {
   CheckIcon, 
   ExclamationTriangleIcon,
   HeartIcon,
-  ShoppingCartIcon 
+  ShoppingCartIcon,
+  ArrowLeftIcon,
+  ArrowRightIcon
 } from '@/components/atoms';
 import { DiscogsRelease } from '@/utils/discogs';
 import { AudioPlayerControls } from './AudioPlayerControls';
@@ -19,6 +21,7 @@ import { PriceCondition } from './PriceCondition';
 import { ActionButtons } from './ActionButtons';
 import { VideoScrubber } from './VideoScrubber';
 import { AutoplayVideoPlayer } from './AutoplayVideoPlayer';
+import { PaginationControls } from './PaginationControls';
 
 interface RecordCardProps {
   release: DiscogsRelease;
@@ -51,6 +54,8 @@ interface RecordCardProps {
   index?: number; // For priority loading
   currentIndex?: number; // Current position (1-based)
   totalCount?: number; // Total number of records
+  onPreviousRecord?: () => void;
+  onNextRecord?: () => void;
 }
 
 // Calculate verification status for list view
@@ -110,7 +115,9 @@ export const RecordCard: React.FC<RecordCardProps> = ({
   trackMatches,
   index,
   currentIndex,
-  totalCount
+  totalCount,
+  onPreviousRecord,
+  onNextRecord
 }) => {
   const verificationStatus = calculateVerificationStatus(release, trackMatches);
 
@@ -296,10 +303,10 @@ export const RecordCard: React.FC<RecordCardProps> = ({
   // Grid View - Mobile 9:16 Feed Card
   return (
     <div 
-      className="w-full max-w-sm mx-auto flex flex-col bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg overflow-hidden" 
+      className="w-full max-w-sm mx-auto flex flex-col overflow-hidden" 
       style={{ aspectRatio: '9 / 16' }}
     >
-      {/* Video Region - Fixed 16:9 at very top */}
+      {/* Video Region - Full width 16:9 at very top */}
       <div className="relative w-full bg-black" style={{ aspectRatio: '16 / 9' }}>
         {currentVideoId ? (
           <AutoplayVideoPlayer
@@ -317,8 +324,27 @@ export const RecordCard: React.FC<RecordCardProps> = ({
         )}
       </div>
       
+      {/* Track Dots Pagination */}
+      {tracks && tracks.length > 1 && (
+        <div className="flex justify-center py-2 bg-black/50">
+          <div className="flex gap-1">
+            {tracks.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => onTrackChange?.(index)}
+                className={`w-2 h-2 rounded-full transition-all duration-200 ${
+                  index === currentTrackIndex 
+                    ? 'bg-white' 
+                    : 'bg-white/30 hover:bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      
       {/* Details Section */}
-      <div className="flex-1 flex flex-col p-4 space-y-3">
+      <div className="flex-1 flex flex-col p-4 space-y-3 bg-black/90">
         {/* Track Title (emphasized) */}
         <h2 className="text-lg font-bold text-white leading-tight">
           {currentTrack?.title || release.title}
@@ -361,6 +387,51 @@ export const RecordCard: React.FC<RecordCardProps> = ({
             {release.condition || 'VG+'} / {release.sleeve_condition || 'Sleeve VG'}
           </div>
         </div>
+        
+        {/* Previous/Next Controls */}
+        {(onPreviousRecord || onNextRecord) && (
+          <div className="grid grid-cols-3 items-center py-3">
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  // If on first track, go to previous record's last track
+                  if (currentTrackIndex === 0) {
+                    onPreviousRecord?.();
+                  } else {
+                    // Go to previous track
+                    onTrackChange?.(currentTrackIndex - 1);
+                  }
+                }}
+                disabled={!onPreviousRecord && currentTrackIndex === 0}
+                className="w-12 h-12 text-white/70 hover:text-white hover:bg-white/20 disabled:opacity-30 p-2"
+              >
+                <ArrowLeftIcon className="size-8 stroke-2" />
+              </Button>
+            </div>
+            
+            <div></div>
+            
+            <div className="flex justify-center">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  // If on last track, go to next record's first track
+                  if (currentTrackIndex === (tracks?.length || 1) - 1) {
+                    onNextRecord?.();
+                  } else {
+                    // Go to next track
+                    onTrackChange?.(currentTrackIndex + 1);
+                  }
+                }}
+                disabled={!onNextRecord && currentTrackIndex === (tracks?.length || 1) - 1}
+                className="w-12 h-12 text-white/70 hover:text-white hover:bg-white/20 disabled:opacity-30 p-2"
+              >
+                <ArrowRightIcon className="size-8 stroke-2" />
+              </Button>
+            </div>
+          </div>
+        )}
         
         {/* CTAs: Wishlist (secondary) and Buy Now */}
         <div className="flex gap-3 mt-auto">

@@ -99,52 +99,34 @@ export const FeedTemplate: React.FC<FeedTemplateProps> = ({
           </FeedWindow>
         </div>
 
-        {/* Mobile Carousel with Windowed Rendering */}
-        <FeedWindow 
-          releases={releases} 
+        {/* Mobile Carousel - Direct without windowing for smooth scrolling */}
+        <RecordCarousel
+          releases={releases}
+          totalReleases={totalReleases}
           currentReleaseIndex={currentReleaseIndex}
-          windowSize={windowSize}
-        >
-          {(windowedReleases, adjustedIndex) => (
-            <RecordCarousel
-              releases={windowedReleases}
-              totalReleases={totalReleases}
-              currentReleaseIndex={adjustedIndex}
-              currentTrackIndex={currentTrackIndex}
-              onReleaseChange={(index) => {
-                // Calculate the real index from the windowed index
-                const halfWindow = Math.floor(windowSize / 2);
-                let startIndex = currentReleaseIndex - halfWindow;
-                if (startIndex < 0) startIndex = 0;
-                if (startIndex + windowedReleases.length > releases.length) {
-                  startIndex = releases.length - windowedReleases.length;
-                }
-                const realIndex = startIndex + index;
-                onReleaseChange(realIndex);
-              }}
-              onTrackChange={onTrackChange}
-              isScrolling={isScrolling}
-              onScroll={onScroll}
-              onTrackScroll={onTrackScroll}
-              slideDirection={slideDirection}
-              currentBgImage={currentBgImage}
-              nextBgImage={nextBgImage}
-              bgTransitioning={bgTransitioning}
-              youtubeVideoId={youtubeVideoId}
-              audioLoading={audioLoading}
-              cartCount={cartCount}
-              onAddToCart={onAddToCart}
-              showFilters={showFilters}
-              onToggleFilters={onToggleFilters}
-              filters={filters}
-              onFiltersChange={onFiltersChange}
-              onClearFilters={onClearFilters}
-              storeInfo={storeInfo}
-              isLoadingLight={isLoadingLight}
-              hasFullData={hasFullData}
-            />
-          )}
-        </FeedWindow>
+          currentTrackIndex={currentTrackIndex}
+          onReleaseChange={onReleaseChange}
+          onTrackChange={onTrackChange}
+          isScrolling={isScrolling}
+          onScroll={onScroll}
+          onTrackScroll={onTrackScroll}
+          slideDirection={slideDirection}
+          currentBgImage={currentBgImage}
+          nextBgImage={nextBgImage}
+          bgTransitioning={bgTransitioning}
+          youtubeVideoId={youtubeVideoId}
+          audioLoading={audioLoading}
+          cartCount={cartCount}
+          onAddToCart={onAddToCart}
+          showFilters={showFilters}
+          onToggleFilters={onToggleFilters}
+          filters={filters}
+          onFiltersChange={onFiltersChange}
+          onClearFilters={onClearFilters}
+          storeInfo={storeInfo}
+          isLoadingLight={isLoadingLight}
+          hasFullData={hasFullData}
+        />
       </div>
     </PageLayout>
   );
