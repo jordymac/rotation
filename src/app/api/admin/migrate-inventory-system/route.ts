@@ -156,7 +156,6 @@ export async function POST() {
           r.last_updated
         FROM releases r
         WHERE r.store_username = p_store_username
-          AND r.has_audio_matches = true
         ORDER BY r.last_updated DESC;
       $$;
     `);

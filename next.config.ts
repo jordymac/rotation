@@ -9,6 +9,9 @@ const nextConfig: NextConfig = {
     // Temporarily ignore ESLint errors during build  
     ignoreDuringBuilds: true,
   },
+  images: {
+    domains: ['i.discogs.com'],
+  },
 };
 
 export default nextConfig;

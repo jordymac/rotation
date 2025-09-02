@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { dbStores } from '@/lib/db-stores';
+import { supabaseStores } from '@/lib/db-supabase';
 
 const DISCOGS_API_BASE = 'https://api.discogs.com';
 
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
     console.log('[Store Directory] Fetching store directory...');
     
     // Get admin stores list
-    const stores = await dbStores.getAll();
+    const stores = await supabaseStores.getAll();
     console.log(`[Store Directory] Found ${stores.length} admin stores`);
     
     // Fetch basic store metadata from Discogs (no inventory)

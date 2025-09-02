@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { EnhancedAudioMatchingService } from '@/lib/enhanced-audio-matching-service';
-import { getOrComputeMatch } from '@/lib/match-service';
+import { AudioMatchingEngine } from '@/lib/audio-matching-engine';
+import { getOrComputeMatch } from '@/lib/audio-match-orchestrator';
+import { singleFlight } from '@/lib/redis';
 
 // GET /api/admin/releases/[releaseId]/audio-match
 // Initiate audio matching for a release (up to 10 tracks)
@@ -34,7 +35,17 @@ export async function GET(
       return NextResponse.json({ error: 'Empty response from Discogs API' }, { status: 502 });
     }
     
-    const releaseData = JSON.parse(releaseText);
+    let releaseData;
+    try {
+      releaseData = JSON.parse(releaseText);
+    } catch (parseError) {
+      console.error('[Audio Match] JSON parse error for Discogs release:', parseError);
+      console.error('[Audio Match] Response text:', releaseText.substring(0, 500));
+      return NextResponse.json({ 
+        error: 'Invalid JSON response from Discogs API',
+        details: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
+      }, { status: 502 });
+    }
 
     // Extract release information
     const releaseTitle = releaseData.title;
@@ -58,8 +69,8 @@ export async function GET(
     const discogsVideos = releaseData.videos || [];
     console.log(`[API] Found ${discogsVideos.length} embedded videos from Discogs`);
 
-    // Perform enhanced audio matching (Discogs embeds + YouTube search fallback)
-    const matchResult = await EnhancedAudioMatchingService.findMatches(
+    // Perform audio matching using mix-aware engine (Discogs embeds + YouTube search fallback)
+    const matchResult = await AudioMatchingEngine.findMatches(
       releaseIdNum,
       releaseArtist,
       tracks,
@@ -104,7 +115,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { trackIndex, releaseTitle, releaseArtist, trackInfo } = body;
+    const { trackIndex, releaseTitle, releaseArtist, trackInfo, idempotencyKey } = body;
 
     if (trackIndex === undefined || !releaseTitle || !releaseArtist || !trackInfo) {
       return NextResponse.json(
@@ -113,7 +124,10 @@ export async function POST(
       );
     }
 
-    console.log(`[API] Getting audio match for track ${trackIndex} of "${releaseTitle}" by ${releaseArtist}`);
+    // Create idempotency key if not provided
+    const idemKey = idempotencyKey || `match:${releaseIdNum}:${trackIndex}:${Date.now()}`;
+    
+    console.log(`[API] Getting audio match for track ${trackIndex} of "${releaseTitle}" by ${releaseArtist} (idem: ${idemKey.substring(0, 20)}...)`);
 
     // Fetch full Discogs release data to get embedded videos
     const discogsResponse = await fetch(`https://api.discogs.com/releases/${releaseIdNum}`, {
@@ -126,24 +140,37 @@ export async function POST(
     let discogsVideos = [];
     if (discogsResponse.ok) {
       const releaseText = await discogsResponse.text();
-    if (!releaseText.trim()) {
-      return NextResponse.json({ error: 'Empty response from Discogs API' }, { status: 502 });
-    }
-    
-    const releaseData = JSON.parse(releaseText);
-      discogsVideos = releaseData.videos || [];
+      if (!releaseText.trim()) {
+        console.warn('[Audio Match] Empty response from Discogs API for track matching');
+        discogsVideos = [];
+      } else {
+        try {
+          const releaseData = JSON.parse(releaseText);
+          discogsVideos = releaseData.videos || [];
+        } catch (parseError) {
+          console.error('[Audio Match] JSON parse error for Discogs release (track matching):', parseError);
+          console.error('[Audio Match] Response text:', releaseText.substring(0, 500));
+          discogsVideos = [];
+        }
+      }
       console.log(`[API] Found ${discogsVideos.length} embedded videos from Discogs`);
     }
 
-    // Use the match service to get or compute the match
-    const match = await getOrComputeMatch(
-      releaseIdNum,
-      trackIndex,
-      'system', // admin user ID for auto-approval
-      releaseTitle,
-      releaseArtist,
-      trackInfo,
-      discogsVideos
+    // Use single-flight pattern to prevent duplicate audio matching requests
+    const match = await singleFlight(
+      `audio-match:${releaseIdNum}:${trackIndex}`,
+      async () => {
+        return await getOrComputeMatch(
+          releaseIdNum,
+          trackIndex,
+          'system', // admin user ID for auto-approval
+          releaseTitle,
+          releaseArtist,
+          trackInfo,
+          discogsVideos
+        );
+      },
+      30 // 30 second lock for audio matching
     );
 
     console.log(`[API] Match result for track ${trackIndex}: ${match.platform} (confidence: ${match.confidence})`);
@@ -153,7 +180,8 @@ export async function POST(
       match: match,
       message: match.approved 
         ? `Audio match found and approved for track ${trackIndex + 1}`
-        : `Audio match found but needs review for track ${trackIndex + 1}`
+        : `Audio match found but needs review for track ${trackIndex + 1}`,
+      idempotencyKey: idemKey
     });
 
   } catch (error) {

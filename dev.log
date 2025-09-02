@@ -1504,3 +1504,20 @@ WARNING: Creating a duplicate database object for the same connection.
  ✓ Compiled in 333ms (1060 modules)
  GET /admin 200 in 80ms
  GET /stores/fanatico_records 200 in 76ms
+ GET /api/stores/fanatico_records/inventory 200 in 712781ms
+ ✓ Compiled in 1496ms (1060 modules)
+ ✓ Compiled in 435ms (1060 modules)
+ ✓ Compiled in 3.7s (2263 modules)
+ ✓ Compiled in 1925ms (2263 modules)
+ ✓ Compiled in 1474ms (2263 modules)
+ ✓ Compiled in 2.2s (2263 modules)
+ ✓ Compiled in 4.9s (2263 modules)
+ ✓ Compiled in 984ms (2263 modules)
+ ✓ Compiled in 1412ms (2263 modules)
+ ✓ Compiled in 1348ms (2263 modules)
+ ✓ Compiled in 1843ms (2263 modules)
+ ✓ Compiled in 1564ms (2263 modules)
+ ✓ Compiled in 1070ms (2263 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, rename '/Users/placeos/rotation/.next/cache/webpack/client-development/0.pack.gz_' -> '/Users/placeos/rotation/.next/cache/webpack/client-development/0.pack.gz'
+ ✓ Compiled in 3.1s (2263 modules)
+[?25h

@@ -6,6 +6,7 @@ export { HomeTemplate } from './HomeTemplate';
 export { FeedTemplate } from './FeedTemplate';
 export { StoresTemplate } from './StoresTemplate';
 export { AdminTemplate } from './AdminTemplate';
-export { StoreManagementTemplate } from './StoreManagementTemplate';
+export { AdminReviewTemplate } from './AdminReviewTemplate';
+export { AdminTrackReviewTemplate } from './AdminTrackReviewTemplate';
 export { ErrorTemplate } from './ErrorTemplate';
 export { LoadingTemplate } from './LoadingTemplate';

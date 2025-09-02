@@ -6,7 +6,7 @@ import {
   saveTrackMatch,
   type QueuedRelease 
 } from '@/lib/db';
-import { createMatchService } from '@/lib/match-service';
+import { createMatchService } from '@/lib/audio-match-orchestrator';
 
 export async function POST() {
   try {
@@ -57,6 +57,18 @@ export async function POST() {
           ? JSON.parse(release.release_data) 
           : release.release_data;
 
+        // Get the releases table ID for this discogs_id
+        const releaseRecord = await database.oneOrNone(`
+          SELECT id FROM releases WHERE discogs_id = $1 AND store_username = $2
+        `, [release.discogs_id, release.store_username]);
+        
+        if (!releaseRecord) {
+          console.log(`[Queue Processor] Release ${release.discogs_id} not found in releases table, skipping`);
+          continue;
+        }
+        
+        const releaseId = releaseRecord.id;
+
         // Enhanced audio matching for all tracks
         let totalMatches = 0;
         const tracklist = releaseData.release?.tracklist || [];
@@ -104,7 +116,7 @@ export async function POST() {
                   
                   try {
                     await saveTrackMatch({
-                      release_id: release.discogs_id,
+                      release_id: releaseId, // Use releases table ID
                       track_index: trackIndex,
                       platform: bestMatch.platform,
                       match_url: bestMatch.url,
@@ -133,50 +145,33 @@ export async function POST() {
 
         console.log(`[Queue Processor] Release ${release.discogs_id} total confident matches: ${totalMatches}`);
 
-        // Only cache releases with audio matches (confidence threshold met)
-        if (totalMatches > 0) {
-          console.log(`[Queue Processor] Caching release ${release.discogs_id} with ${totalMatches} audio matches`);
-          
-          const cached = await cacheReleaseWithMatches(
-            release.store_username,
-            release.discogs_id,
-            releaseData.release,
-            totalMatches
-          );
+        // Always cache ALL releases regardless of audio match status
+        console.log(`[Queue Processor] Caching release ${release.discogs_id} with ${totalMatches} audio matches`);
+        
+        const cached = await cacheReleaseWithMatches(
+          release.store_username,
+          release.discogs_id,
+          releaseData.release,
+          totalMatches
+        );
 
-          if (cached) {
-            results.cached++;
-            results.details.push({
-              discogs_id: release.discogs_id,
-              status: 'cached',
-              audio_matches: totalMatches
-            });
-            
-            // Mark as completed
-            await database.none(`
-              UPDATE processing_queue 
-              SET status = 'completed', completed_at = NOW() 
-              WHERE id = $1
-            `, [release.id]);
-            
-          } else {
-            throw new Error('Failed to cache release in database');
-          }
-        } else {
-          console.log(`[Queue Processor] Skipping release ${release.discogs_id} - no confident audio matches found`);
-          
+        if (cached) {
+          results.cached++;
           results.details.push({
             discogs_id: release.discogs_id,
-            status: 'skipped',
-            audio_matches: 0
+            status: 'cached',
+            audio_matches: totalMatches
           });
           
-          // Mark as completed but don't cache
+          // Mark as completed
           await database.none(`
             UPDATE processing_queue 
             SET status = 'completed', completed_at = NOW() 
             WHERE id = $1
           `, [release.id]);
+          
+        } else {
+          throw new Error('Failed to cache release in database');
         }
 
         results.processed++;
