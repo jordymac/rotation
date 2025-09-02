@@ -52,12 +52,12 @@ export function getDatabase() {
       config = {
         connectionString: connectionString.replace('?sslmode=require', ''),
         ssl: { rejectUnauthorized: false },
-        // Reduce max connections for serverless environment
-        max: 3,
-        idleTimeoutMillis: 1000,
-        connectionTimeoutMillis: 2000,
-        query_timeout: 5000,
-        statement_timeout: 10000
+        // Optimize for serverless environment
+        max: 2,
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+        query_timeout: 15000,
+        statement_timeout: 20000
       };
       console.log('[Database] Configured for Supabase with connection pooling');
     } else if (connectionString.includes('vercel') || connectionString.includes('neon')) {
