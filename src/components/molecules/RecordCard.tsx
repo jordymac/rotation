@@ -256,11 +256,11 @@ export const RecordCard: React.FC<RecordCardProps> = ({
   // Grid View - Mobile 9:16 Feed Card
   return (
     <Card 
-      className="w-full max-w-sm mx-auto flex flex-col" 
+      className="w-full max-w-sm mx-auto flex flex-col p-0 overflow-hidden" 
       style={{ aspectRatio: '9 / 16' }}
     >
       {/* Video Region - Fixed 16:9 */}
-      <div className="relative w-full bg-black rounded-t-lg overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
+      <div className="relative w-full bg-black overflow-hidden" style={{ aspectRatio: '16 / 9' }}>
         {youtubeVideoId ? (
           <AutoplayVideoPlayer
             videoId={youtubeVideoId}
