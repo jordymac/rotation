@@ -68,6 +68,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, store });
   } catch (error) {
     console.error('Error adding store:', error);
-    return NextResponse.json({ error: 'Failed to add store' }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to add store', 
+      details: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    }, { status: 500 });
   }
 }
