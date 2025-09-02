@@ -253,6 +253,46 @@ export const RecordCard: React.FC<RecordCardProps> = ({
     );
   }
 
+  // Extract YouTube video ID from audioMatches for current track
+  const extractYouTubeVideoId = (url: string): string | null => {
+    if (!url) return null;
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/);
+    return match?.[1] || null;
+  };
+
+  // Find video for current track from audioMatches
+  const currentVideoId = (() => {
+    if (!release.audioMatches || currentTrackIndex === undefined) return youtubeVideoId;
+    
+    const currentTrackMatch = release.audioMatches.find(match => 
+      match.trackIndex === (currentTrackIndex || 0)
+    );
+    
+    if (currentTrackMatch?.platform === 'youtube' && currentTrackMatch.url) {
+      return extractYouTubeVideoId(currentTrackMatch.url);
+    }
+    
+    // Fallback to first available video
+    const firstMatch = release.audioMatches.find(match => 
+      match.platform === 'youtube' && match.url
+    );
+    
+    return firstMatch ? extractYouTubeVideoId(firstMatch.url) : youtubeVideoId;
+  })();
+
+  // Debug logging for video ID extraction
+  console.log('🎬 Video ID extraction:', {
+    releaseId: release.id,
+    audioMatchesCount: release.audioMatches?.length || 0,
+    currentTrackIndex,
+    extractedVideoId: currentVideoId,
+    audioMatches: release.audioMatches?.map(m => ({ 
+      trackIndex: m.trackIndex, 
+      platform: m.platform,
+      url: m.url 
+    }))
+  });
+
   // Grid View - Mobile 9:16 Feed Card
   return (
     <div 
@@ -261,9 +301,9 @@ export const RecordCard: React.FC<RecordCardProps> = ({
     >
       {/* Video Region - Fixed 16:9 at very top */}
       <div className="relative w-full bg-black" style={{ aspectRatio: '16 / 9' }}>
-        {youtubeVideoId ? (
+        {currentVideoId ? (
           <AutoplayVideoPlayer
-            videoId={youtubeVideoId}
+            videoId={currentVideoId}
             title={`${release.artist} - ${release.title}`}
           />
         ) : audioLoading ? (
