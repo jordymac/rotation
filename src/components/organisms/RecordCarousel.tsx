@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { DiscogsRelease } from '@/utils/discogs';
-import { RecordCard, SearchFilters } from '@/components/molecules';
+import { RecordCard, FeedCardSkeleton, SearchFilters } from '@/components/molecules';
 import { Button, H2 } from '@/components/atoms';
 import { 
   Bars3Icon, 
@@ -15,6 +15,7 @@ import {
 
 interface RecordCarouselProps {
   releases: DiscogsRelease[];
+  totalReleases?: number; // Total count for display (not windowed count)
   currentReleaseIndex: number;
   currentTrackIndex: number;
   onReleaseChange: (index: number) => void;
@@ -48,10 +49,13 @@ interface RecordCarouselProps {
     username: string;
   };
   className?: string;
+  isLoadingLight?: boolean;
+  hasFullData?: (releaseId: number) => boolean;
 }
 
 export const RecordCarousel: React.FC<RecordCarouselProps> = ({
   releases,
+  totalReleases,
   currentReleaseIndex,
   currentTrackIndex,
   onReleaseChange,
@@ -73,7 +77,9 @@ export const RecordCarousel: React.FC<RecordCarouselProps> = ({
   onFiltersChange,
   onClearFilters,
   storeInfo,
-  className
+  className,
+  isLoadingLight = false,
+  hasFullData = () => true
 }) => {
   const currentRelease = releases[currentReleaseIndex];
 
@@ -208,7 +214,7 @@ export const RecordCarousel: React.FC<RecordCarouselProps> = ({
           
           <div className="text-center text-white">
             <div className="text-sm opacity-80">
-              {currentReleaseIndex + 1} / {releases.length}
+              {currentReleaseIndex + 1} / {totalReleases || releases.length}
             </div>
           </div>
           
@@ -226,17 +232,29 @@ export const RecordCarousel: React.FC<RecordCarouselProps> = ({
           slideDirection === 'up' ? 'animate-slide-up' : 
           slideDirection === 'down' ? 'animate-slide-down' : ''
         )}>
-          <RecordCard 
-            release={currentRelease}
-            currentTrack={currentRelease.tracks?.[currentTrackIndex]}
-            showTrackInfo={true}
-            tracks={currentRelease.tracks || []}
-            currentTrackIndex={currentTrackIndex}
-            onTrackChange={onTrackChange}
-            isScrolling={isScrolling}
-            youtubeVideoId={youtubeVideoId}
-            audioLoading={audioLoading}
-          />
+          {isLoadingLight && releases.length === 0 ? (
+            <FeedCardSkeleton viewMode="grid" />
+          ) : currentRelease ? (
+            !hasFullData(currentRelease.id) && currentRelease.tracks?.length === 0 ? (
+              <FeedCardSkeleton viewMode="grid" />
+            ) : (
+              <RecordCard 
+                release={currentRelease}
+                currentTrack={currentRelease.tracks?.[currentTrackIndex]}
+                showTrackInfo={true}
+                tracks={currentRelease.tracks || []}
+                currentTrackIndex={currentTrackIndex}
+                onTrackChange={onTrackChange}
+                isScrolling={isScrolling}
+                youtubeVideoId={youtubeVideoId}
+                audioLoading={audioLoading}
+                currentIndex={currentReleaseIndex + 1}
+                totalCount={totalReleases || releases.length}
+              />
+            )
+          ) : (
+            <FeedCardSkeleton viewMode="grid" />
+          )}
         </div>
 
         {/* Bottom Actions */}
@@ -270,7 +288,11 @@ export const RecordCarousel: React.FC<RecordCarouselProps> = ({
               className="flex-1 bg-green-600 hover:bg-green-700 text-white"
             >
               <a
-                href={`https://www.discogs.com${currentRelease.uri}`}
+                href={
+                  currentRelease.listingUri 
+                    ? currentRelease.listingUri
+                    : `https://www.discogs.com${currentRelease.uri}`
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-center"
@@ -325,7 +347,7 @@ export const RecordCarousel: React.FC<RecordCarouselProps> = ({
 
           {/* Results Count */}
           <div className="text-center text-white/60 text-sm mt-4">
-            Showing {releases.length} releases
+            Showing {totalReleases || releases.length} releases
           </div>
         </div>
       </div>

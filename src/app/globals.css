@@ -19,6 +19,24 @@
   }
 }
 
+/* Hide unwanted YouTube controls */
+.youtube-player iframe {
+  position: relative;
+}
+
+/* Hide YouTube logo and watch on YouTube button */
+.ytp-chrome-top-buttons,
+.ytp-title-channel,
+.ytp-watch-later-button,
+.ytp-share-button,
+.ytp-overflow-button,
+.ytp-cards-button,
+.ytp-chrome-top,
+.ytp-show-cards-title,
+.ytp-youtube-button {
+  display: none !important;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
