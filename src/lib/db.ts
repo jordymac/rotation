@@ -4,6 +4,7 @@ import pgPromise from 'pg-promise';
 const pgp = pgPromise({
   // Initialization options
   capSQL: true, // Generate capitalized SQL
+  noWarnings: true, // Suppress warnings like duplicate database objects
   error(err, e) {
     console.error('[Database] Query error:', err);
     if (e.cn) {
@@ -70,6 +71,9 @@ export function getDatabase() {
     db = pgp(config);
     
     console.log('[Database] Connection initialized');
+  } else {
+    // Uncomment for debugging only - this is actually normal behavior
+    // console.warn('WARNING: Creating a duplicate database object for the same connection.');
   }
   
   return db;
@@ -135,7 +139,10 @@ export async function runMigrations(): Promise<void> {
       '005_create_audio_metadata.sql',
       '006_create_user_features.sql',
       '007_create_admin_analytics.sql',
-      '008_create_config_features.sql'
+      '008_create_config_features.sql',
+      '009_processing_queue_unique_constraint.sql',
+      '010_processing_queue_status_index.sql',
+      '011_create_admin_stores.sql'
     ];
     
     for (const migrationFile of migrations) {
@@ -579,14 +586,38 @@ export async function queueReleaseForProcessing(
   const database = getDatabase();
   
   try {
+    // Primary approach: Use ON CONFLICT with constraint
     await database.none(`
       INSERT INTO processing_queue (discogs_id, store_username, priority, release_data)
       VALUES ($1, $2, $3, $4)
+      ON CONFLICT (store_username, discogs_id) DO NOTHING
     `, [discogsId, storeUsername, priority, JSON.stringify(releaseData)]);
     
-    console.log(`[DB] Queued release ${discogsId} for processing`);
+    console.log(`[DB] Queued release ${discogsId} for processing (idempotent)`);
     return true;
   } catch (error) {
+    // Fallback: Use WHERE NOT EXISTS if constraint doesn't exist (42P10 error)
+    if (error.code === '42P10' || error.message.includes('ON CONFLICT')) {
+      console.warn(`[DB] Constraint not found, using fallback for release ${discogsId}`);
+      
+      try {
+        await database.none(`
+          INSERT INTO processing_queue (discogs_id, store_username, priority, release_data)
+          SELECT $1, $2, $3, $4
+          WHERE NOT EXISTS (
+            SELECT 1 FROM processing_queue
+            WHERE store_username = $2 AND discogs_id = $1
+          )
+        `, [discogsId, storeUsername, priority, JSON.stringify(releaseData)]);
+        
+        console.log(`[DB] Queued release ${discogsId} for processing (fallback method)`);
+        return true;
+      } catch (fallbackError) {
+        console.error(`[DB] Fallback error queuing release ${discogsId}:`, fallbackError);
+        return false;
+      }
+    }
+    
     console.error(`[DB] Error queuing release ${discogsId}:`, error);
     return false;
   }
@@ -648,16 +679,14 @@ export async function updateStoreSyncStats(
   const database = getDatabase();
   
   try {
-    await database.none(
-      'SELECT update_sync_stats($1, $2, $3, $4, $5)',
-      [
-        storeUsername,
-        stats.listingsProcessed || 0,
-        stats.newReleases || 0,
-        stats.cachedServed || 0,
-        stats.audioMatches || 0
-      ]
-    );
+    console.log(`[Database] Updating sync stats for ${storeUsername}:`, stats);
+    await database.func('update_sync_stats', [
+      storeUsername,
+      stats.listingsProcessed || 0,
+      stats.newReleases || 0,
+      stats.cachedServed || 0,
+      stats.audioMatches || 0
+    ]);
     
     return true;
   } catch (error) {
