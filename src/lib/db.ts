@@ -24,7 +24,7 @@ const pgp = pgPromise({
   }
 });
 
-// Database instance
+// Database instance with connection pooling
 let db: pgPromise.IDatabase<{}> | null = null;
 
 /**
@@ -32,9 +32,9 @@ let db: pgPromise.IDatabase<{}> | null = null;
  */
 export function getDatabase() {
   if (!db) {
-    // Try different Vercel Postgres environment variables
-    const connectionString = process.env.POSTGRES_URL_NON_POOLING || 
-                            process.env.POSTGRES_URL || 
+    // For serverless, prefer pooled connections over non-pooling
+    const connectionString = process.env.POSTGRES_URL || 
+                            process.env.POSTGRES_URL_NON_POOLING || 
                             process.env.DATABASE_URL;
     
     if (!connectionString) {
@@ -48,12 +48,18 @@ export function getDatabase() {
     let config;
     
     if (connectionString.includes('supabase.com')) {
-      // For Supabase, use specific SSL configuration
+      // For Supabase, use specific SSL configuration with connection pooling
       config = {
         connectionString: connectionString.replace('?sslmode=require', ''),
-        ssl: { rejectUnauthorized: false }
+        ssl: { rejectUnauthorized: false },
+        // Reduce max connections for serverless environment
+        max: 3,
+        idleTimeoutMillis: 1000,
+        connectionTimeoutMillis: 2000,
+        query_timeout: 5000,
+        statement_timeout: 10000
       };
-      console.log('[Database] Configured for Supabase');
+      console.log('[Database] Configured for Supabase with connection pooling');
     } else if (connectionString.includes('vercel') || connectionString.includes('neon')) {
       // For Vercel/Neon, disable SSL verification
       config = {
