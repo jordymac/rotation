@@ -252,15 +252,18 @@ function FeedContent() {
       onTrackChange={setCurrentTrackIndex}
       isScrolling={isScrolling}
       onScroll={(direction) => {
+        console.log('🔄 Scroll event:', { direction, currentIndex: currentReleaseIndex });
         setIsScrolling(true);
         setSlideDirection(direction);
         let newIndex = currentReleaseIndex;
         if (direction === 'down' && currentReleaseIndex < releases.length - 1) {
           newIndex = currentReleaseIndex + 1;
+          console.log('📱 Moving down:', { from: currentReleaseIndex, to: newIndex });
           setCurrentReleaseIndex(newIndex);
           updateUrlWithRecord(newIndex);
         } else if (direction === 'up' && currentReleaseIndex > 0) {
           newIndex = currentReleaseIndex - 1;
+          console.log('📱 Moving up:', { from: currentReleaseIndex, to: newIndex });
           setCurrentReleaseIndex(newIndex);
           updateUrlWithRecord(newIndex);
         }

@@ -135,9 +135,11 @@ export const RecordCarousel: React.FC<RecordCarouselProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onScroll, onTrackScroll]);
 
-  // Handle wheel events
+  // Handle wheel and touch events
   useEffect(() => {
     let lastWheelTime = 0;
+    let touchStartY = 0;
+    let lastTouchTime = 0;
     
     const handleWheel = (e: WheelEvent) => {
       const target = e.target as HTMLElement;
@@ -148,20 +150,60 @@ export const RecordCarousel: React.FC<RecordCarouselProps> = ({
       e.preventDefault();
       
       const now = Date.now();
-      if (now - lastWheelTime < 100) return;
+      if (now - lastWheelTime < 300) return; // Increased debounce
       if (isScrolling) return;
       
       lastWheelTime = now;
       
-      if (e.deltaY > 0) {
+      if (e.deltaY > 30) { // Increased threshold
+        console.log('🖱️ Wheel scroll down');
         onScroll('down');
-      } else if (e.deltaY < 0) {
+      } else if (e.deltaY < -30) {
+        console.log('🖱️ Wheel scroll up');
         onScroll('up');
       }
     };
 
+    const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('#mobile-feed-container')) return;
+      
+      touchStartY = e.touches[0].clientY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('#mobile-feed-container')) return;
+      
+      const now = Date.now();
+      if (now - lastTouchTime < 300) return; // Debounce touches
+      if (isScrolling) return;
+      
+      const touchEndY = e.changedTouches[0].clientY;
+      const deltaY = touchStartY - touchEndY;
+      
+      if (Math.abs(deltaY) > 50) { // Minimum swipe distance
+        lastTouchTime = now;
+        
+        if (deltaY > 0) {
+          console.log('👆 Touch swipe down');
+          onScroll('down');
+        } else {
+          console.log('👆 Touch swipe up');
+          onScroll('up');
+        }
+      }
+    };
+
     window.addEventListener('wheel', handleWheel, { passive: false });
-    return () => window.removeEventListener('wheel', handleWheel);
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
   }, [isScrolling, onScroll]);
 
   if (!currentRelease) {
@@ -250,6 +292,20 @@ export const RecordCarousel: React.FC<RecordCarouselProps> = ({
                 audioLoading={audioLoading}
                 currentIndex={currentReleaseIndex + 1}
                 totalCount={totalReleases || releases.length}
+                onPreviousRecord={() => {
+                  onScroll('up');
+                  // When moving to previous record, go to its last track
+                  const prevIndex = currentReleaseIndex - 1;
+                  if (prevIndex >= 0 && releases[prevIndex]?.tracks) {
+                    const lastTrackIndex = releases[prevIndex].tracks.length - 1;
+                    setTimeout(() => onTrackChange(lastTrackIndex), 100);
+                  }
+                }}
+                onNextRecord={() => {
+                  onScroll('down');
+                  // When moving to next record, go to first track
+                  setTimeout(() => onTrackChange(0), 100);
+                }}
               />
             )
           ) : (
@@ -257,51 +313,7 @@ export const RecordCarousel: React.FC<RecordCarouselProps> = ({
           )}
         </div>
 
-        {/* Bottom Actions */}
-        <div className="px-4 pb-6 flex-shrink-0" style={{ paddingBottom: 'max(24px, env(safe-area-inset-bottom))' }}>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={async () => {
-                // TODO: Add to wishlist
-                alert('Added to wishlist!');
-              }}
-              className="p-3 bg-white/20 hover:bg-white/30 text-white"
-              title="Add to Wishlist"
-            >
-              <EyeIcon className="w-5 h-5" />
-            </Button>
-            
-            <Button 
-              variant="ghost"
-              size="icon"
-              onClick={onAddToCart}
-              className="p-3 bg-blue-600 hover:bg-blue-700 text-white"
-              title="Add to Crate"
-            >
-              <ShoppingCartIcon className="w-5 h-5" />
-            </Button>
-            
-            <Button
-              asChild
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-            >
-              <a
-                href={
-                  currentRelease.listingUri 
-                    ? currentRelease.listingUri
-                    : `https://www.discogs.com${currentRelease.uri}`
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-center"
-              >
-                Buy Now
-              </a>
-            </Button>
-          </div>
-        </div>
+        {/* Bottom Actions - Removed to avoid duplication with RecordCard CTAs */}
       </div>
 
       {/* Filter Panel Overlay */}
