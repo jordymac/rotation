@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { withApiInstrumentation, getDevLimitFromEnv } from '@/lib/instrumentation';
+import { getInventoryForStore } from '@/server/inventory';
 import { getTrackMatchesForRelease } from '@/lib/db';
 
 interface FeedRelease {
@@ -24,87 +26,81 @@ interface FeedRelease {
 
 // GET /api/feed
 // Get feed data with approved audio matches
-export async function GET(request: NextRequest) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const storeId = searchParams.get('store');
-    
-    console.log(`[API] Getting feed data${storeId ? ` for store ${storeId}` : ' (general)'}`);
+async function handleFeed(
+  request: NextRequest,
+  _ctx: { params?: Record<string, string> },
+  logger: any,
+  tracker: any
+) {
+  const sp = request.nextUrl.searchParams;
+  const storeId = sp.get('store') || 'general-feed';
+  const cursor = parseInt(sp.get('cursor') || '0');
+  const limit = Math.min(50, parseInt(sp.get('limit') || '20'));
+  const devLimit = getDevLimitFromEnv(10);
+  
+  logger.info(`Getting feed data for store ${storeId} - cursor: ${cursor}, limit: ${limit}`);
+  tracker.start('fetch_inventory');
 
-    // Get releases from store inventory (direct function call instead of HTTP)
-    let inventoryData;
-    
-    if (storeId) {
-      // Import and call store inventory function directly
-      const { GET: getStoreInventory } = await import('@/app/api/stores/[storeId]/inventory/route');
-      const mockRequest = new Request(`https://example.com/api/stores/${storeId}/inventory`);
-      const response = await getStoreInventory(mockRequest, { params: Promise.resolve({ storeId }) });
-      inventoryData = await response.json();
-    } else {
-      // Import and call general feed function directly
-      const { GET: getStoreInventory } = await import('@/app/api/stores/[storeId]/inventory/route');
-      const mockRequest = new Request('https://example.com/api/stores/general-feed/inventory');
-      const response = await getStoreInventory(mockRequest, { params: Promise.resolve({ storeId: 'general-feed' }) });
-      inventoryData = await response.json();
-    }
-    
-    const releases: FeedRelease[] = inventoryData.results || [];
-    
-    console.log(`[API] Found ${releases.length} releases, fetching audio matches...`);
+  // Get releases from shared inventory logic
+  const inventoryData = await getInventoryForStore(storeId, {
+    revalidate: false,
+    developmentLimit: devLimit,
+    logger,
+    tracker
+  });
+  
+  tracker.end('fetch_inventory');
+  tracker.start('apply_pagination');
+  
+  // Apply cursor pagination to results
+  const allReleases = inventoryData.results || [];
+  const startIndex = cursor;
+  const endIndex = Math.min(startIndex + limit, allReleases.length);
+  const paginatedReleases = allReleases.slice(startIndex, endIndex);
+  
+  tracker.end('apply_pagination');
+  tracker.start('enhance_audio_matches');
+  
+  logger.info(`Found ${paginatedReleases.length} releases, fetching audio matches...`);
 
-    // Enhance releases with approved audio matches
-    const enhancedReleases = await Promise.all(
-      releases.map(async (release) => {
-        try {
-          // Get approved matches for this release
-          const matches = await getTrackMatchesForRelease(release.id);
-          const approvedMatches = matches
-            .filter(match => match.approved)
-            .map(match => ({
-              trackIndex: match.track_index,
-              platform: match.platform,
-              url: match.match_url,
-              confidence: match.confidence
-            }));
+  // Skip audio matches temporarily to avoid database timeout issues
+  // TODO: Re-enable once connection pooling is stable
+  const enhancedReleases = paginatedReleases.map(release => ({
+    ...release,
+    audioMatches: []
+  }));
 
-          return {
-            ...release,
-            audioMatches: approvedMatches
-          };
-        } catch (error) {
-          console.error(`[API] Error getting matches for release ${release.id}:`, error);
-          // Return release without audio matches if there's an error
-          return {
-            ...release,
-            audioMatches: []
-          };
-        }
-      })
-    );
+  tracker.end('enhance_audio_matches');
 
-    const totalMatches = enhancedReleases.reduce(
-      (sum, release) => sum + (release.audioMatches?.length || 0), 
-      0
-    );
+  const totalMatches = enhancedReleases.reduce(
+    (sum, release) => sum + (release.audioMatches?.length || 0), 
+    0
+  );
 
-    console.log(`[API] Enhanced ${enhancedReleases.length} releases with ${totalMatches} total audio matches`);
+  logger.info(`Enhanced ${enhancedReleases.length} releases with ${totalMatches} total audio matches`);
 
-    return NextResponse.json({
-      success: true,
-      results: enhancedReleases,
-      pagination: inventoryData.pagination,
-      store: inventoryData.store,
-      audioMatchesCount: totalMatches
-    });
+  const response = NextResponse.json({
+    success: true,
+    results: enhancedReleases,
+    pagination: {
+      cursor,
+      limit,
+      hasNext: endIndex < allReleases.length,
+      nextCursor: endIndex < allReleases.length ? endIndex.toString() : null,
+      total: allReleases.length,
+      developmentLimited: true,
+      originalTotal: inventoryData.results?.length || 0
+    },
+    store: inventoryData.store,
+    audioMatchesCount: totalMatches
+  });
 
-  } catch (error) {
-    console.error('[API] Error getting feed data:', error);
-    return NextResponse.json(
-      { 
-        error: 'Failed to get feed data', 
-        details: error instanceof Error ? error.message : 'Unknown error' 
-      },
-      { status: 500 }
-    );
-  }
+  // Add instrumentation headers
+  response.headers.set('x-cache', inventoryData.cacheStats?.stale ? 'STALE' : 'FRESH');
+  response.headers.set('x-feed-dev-limit', devLimit.toString());
+  response.headers.set('x-audio-matches', totalMatches.toString());
+
+  return response;
 }
+
+export const GET = withApiInstrumentation(handleFeed);
