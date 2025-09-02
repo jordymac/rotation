@@ -24,6 +24,9 @@ export interface DiscogsRelease {
   condition?: string;
   sleeve_condition?: string;
   tracks?: DiscogsTrack[];
+  // Listing-specific fields for seller URLs
+  listingId?: number | null;
+  listingUri?: string | null;
 }
 
 export interface DiscogsSearchResult {
@@ -70,8 +73,8 @@ export async function getRelease(id: number): Promise<DiscogsRelease> {
   return response.json();
 }
 
-export async function getStoreInventory(): Promise<DiscogsSearchResult> {
-  const response = await fetch('/api/store/inventory');
+export async function getStoreInventory(storeId: string): Promise<DiscogsSearchResult> {
+  const response = await fetch(`/api/storefront/${storeId}/inventory`);
 
   if (!response.ok) {
     throw new Error(`API error: ${response.status}`);

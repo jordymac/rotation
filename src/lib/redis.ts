@@ -199,6 +199,154 @@ export async function clearCachedMatchesForRelease(releaseId: number): Promise<v
 }
 
 /**
+ * Single-flight pattern implementation using Redis locks
+ * Prevents concurrent execution of the same operation across instances
+ */
+export async function singleFlight<T>(
+  key: string,
+  operation: () => Promise<T>,
+  lockTtlSeconds: number = 60
+): Promise<T> {
+  const lockKey = `lock:${key}`;
+  const client = await getRedisClient();
+  
+  try {
+    // Try to acquire lock
+    const acquired = await client.set(lockKey, "1", { nx: true, ex: lockTtlSeconds });
+    
+    if (!acquired) {
+      // Lock not acquired - operation already in progress
+      // Wait briefly and return cached result if available
+      console.log(`[Redis] Lock not acquired for ${key}, checking for cached result`);
+      
+      const cacheKey = `cache:${key}`;
+      const cached = await client.get(cacheKey);
+      
+      if (cached) {
+        console.log(`[Redis] Returning cached result for ${key}`);
+        return typeof cached === 'string' ? JSON.parse(cached) : cached;
+      }
+      
+      // No cached result, wait for lock and retry
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const retryResult = await client.get(cacheKey);
+      if (retryResult) {
+        return typeof retryResult === 'string' ? JSON.parse(retryResult) : retryResult;
+      }
+      
+      throw new Error(`Operation in progress for ${key}, no cached result available`);
+    }
+    
+    console.log(`[Redis] Lock acquired for ${key}, executing operation`);
+    
+    // Execute operation
+    const result = await operation();
+    
+    // Cache the result for other requests
+    const cacheKey = `cache:${key}`;
+    await client.set(cacheKey, JSON.stringify(result), { ex: 300 }); // 5 min cache
+    
+    return result;
+    
+  } finally {
+    // Always release the lock
+    try {
+      await client.del(lockKey);
+      console.log(`[Redis] Lock released for ${key}`);
+    } catch (error) {
+      console.error(`[Redis] Error releasing lock for ${key}:`, error);
+    }
+  }
+}
+
+/**
+ * Acquire a Redis lock for inventory refresh operations
+ * Ensures only one inventory refresh per store at a time
+ */
+export async function acquireInventoryLock(storeUsername: string, ttlSeconds: number = 60): Promise<boolean> {
+  const lockKey = `inventory-lock:${storeUsername}`;
+  const client = await getRedisClient();
+  
+  try {
+    // Use NX (only set if not exists) and EX (expire) options
+    const acquired = await client.set(lockKey, "1", { nx: true, ex: ttlSeconds });
+    
+    if (acquired) {
+      console.log(`[Redis] Acquired inventory lock for ${storeUsername} (TTL: ${ttlSeconds}s)`);
+      return true;
+    } else {
+      console.log(`[Redis] Inventory lock already held for ${storeUsername}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`[Redis] Error acquiring inventory lock for ${storeUsername}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Release a Redis lock for inventory refresh operations
+ */
+export async function releaseInventoryLock(storeUsername: string): Promise<boolean> {
+  const lockKey = `inventory-lock:${storeUsername}`;
+  const client = await getRedisClient();
+  
+  try {
+    const released = await client.del(lockKey);
+    
+    if (released > 0) {
+      console.log(`[Redis] Released inventory lock for ${storeUsername}`);
+      return true;
+    } else {
+      console.log(`[Redis] No inventory lock found for ${storeUsername}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`[Redis] Error releasing inventory lock for ${storeUsername}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Check if an inventory lock is currently held for a store
+ */
+export async function isInventoryLocked(storeUsername: string): Promise<boolean> {
+  const lockKey = `inventory-lock:${storeUsername}`;
+  const client = await getRedisClient();
+  
+  try {
+    const exists = await client.exists(lockKey);
+    return exists > 0;
+  } catch (error) {
+    console.error(`[Redis] Error checking inventory lock for ${storeUsername}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Execute operation with inventory lock protection
+ * Automatically acquires and releases lock
+ */
+export async function withInventoryLock<T>(
+  storeUsername: string,
+  operation: () => Promise<T>,
+  ttlSeconds: number = 60
+): Promise<T> {
+  const lockAcquired = await acquireInventoryLock(storeUsername, ttlSeconds);
+  
+  if (!lockAcquired) {
+    throw new Error(`Inventory refresh already in progress for store: ${storeUsername}`);
+  }
+  
+  try {
+    const result = await operation();
+    return result;
+  } finally {
+    await releaseInventoryLock(storeUsername);
+  }
+}
+
+/**
  * Get cache statistics
  */
 export async function getCacheStats(): Promise<{

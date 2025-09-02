@@ -101,36 +101,31 @@ class SimpleAnalytics {
 // Singleton instance for development
 export const analytics = new SimpleAnalytics();
 
-// For early stage: since we have no real user activity yet,
-// we'll show "No data yet" states instead of fake numbers
+// Lightweight metrics for admin dashboard - no heavy processing
 export const getStoreMetrics = async (storeUsername: string) => {
   try {
-    // Get real collection count from Discogs
-    const inventoryResponse = await fetch(`/api/stores/${storeUsername}/inventory`);
-    let collectionCount = 0;
+    // Use lightweight admin stats endpoint (database only, no API calls)
+    const statsResponse = await fetch(`/api/admin/stores/${storeUsername}/stats`);
     
-    if (inventoryResponse.ok) {
-      try {
-        const text = await inventoryResponse.text();
-        if (text.trim()) {
-          const inventoryData = JSON.parse(text);
-          collectionCount = inventoryData.pagination?.items || 0;
-        }
-      } catch (err) {
-        console.warn('[Analytics] Failed to parse inventory response:', err);
-      }
+    if (!statsResponse.ok) {
+      throw new Error(`Stats API error: ${statsResponse.status}`);
     }
 
-    // Get analytics data (will be empty in early days)
+    const { stats } = await statsResponse.json();
+    
+    // Get minimal analytics data (will be empty in early days)
     const analyticsData = analytics.getStoreStats(storeUsername);
 
     return {
-      collectionCount, // Real data
+      collectionCount: stats.collectionCount,
       views: analyticsData.views, // Real but likely 0 initially
       wishlists: analyticsData.wishlists, // Real but likely 0 initially  
       sales: analyticsData.sales, // Real but likely 0 initially
-      audioMatchPercentage: 0, // Real but needs implementation
-      lastSync: analyticsData.lastUpdated
+      audioMatchPercentage: stats.audioMatchPercentage,
+      lastSync: stats.lastSync,
+      // Additional admin info
+      queueStats: stats.queue,
+      totalMatches: stats.totalMatches
     };
   } catch (error) {
     console.error(`Error fetching metrics for ${storeUsername}:`, error);

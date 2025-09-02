@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { approveMatch, rejectMatch } from '@/lib/match-service';
+import { approveMatch, rejectMatch } from '@/lib/audio-match-orchestrator';
 
 // POST /api/admin/releases/[releaseId]/approve-match
 // Approve an audio match for a track

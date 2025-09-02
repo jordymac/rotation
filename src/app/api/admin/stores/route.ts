@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { dbStores } from '@/lib/db-stores';
+import { supabaseStores } from '@/lib/db-supabase';
 
 export async function GET() {
   // Temporarily bypass auth for development
@@ -11,7 +11,7 @@ export async function GET() {
   // }
 
   // For now, anyone can access admin. In production, add admin role check
-  const stores = await dbStores.getAll();
+  const stores = await supabaseStores.getAll();
   
   return NextResponse.json({ stores });
 }
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const trimmedUsername = username.trim();
     
     // Check if store already exists
-    const existingStores = await dbStores.getAll();
+    const existingStores = await supabaseStores.getAll();
     if (existingStores.some(store => store.username.toLowerCase() === trimmedUsername.toLowerCase())) {
       return NextResponse.json({ error: 'Store already exists' }, { status: 400 });
     }
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Add the store
-    const store = await dbStores.add(trimmedUsername);
+    const store = await supabaseStores.add(trimmedUsername);
     
     return NextResponse.json({ success: true, store });
   } catch (error) {

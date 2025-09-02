@@ -140,6 +140,20 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
 
   return (
     <div className={cn('space-y-8', className)}>
+      {/* System Update Notice */}
+      <Card className="bg-gradient-to-r from-green-500/20 to-blue-500/20 backdrop-blur-sm border-green-500/30 p-4">
+        <div className="flex items-center gap-3">
+          <div className="text-2xl">🚀</div>
+          <div>
+            <H3 className="text-green-400 font-semibold mb-1">New Inbox-Style Review System</H3>
+            <P className="text-white/80 text-sm mt-0">
+              Store management now uses a high-efficiency 3-pane inbox with ≥80% auto-approval, 
+              keyboard shortcuts (J/K/A/R/N), and bulk actions. Same URLs, dramatically faster workflow.
+            </P>
+          </div>
+        </div>
+      </Card>
+
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard
@@ -225,6 +239,10 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
                         month: 'long',
                         day: 'numeric'
                       })} • Last sync: {store.stats?.lastSync || 'Never'}
+                      <br />
+                      <span className="text-green-400 text-xs">
+                        ✨ New Inbox Interface - Fast keyboard navigation & bulk approvals
+                      </span>
                     </div>
                   </div>
                   
@@ -237,9 +255,10 @@ export const StoreManagement: React.FC<StoreManagementProps> = ({
                     </Button>
                     <Button
                       onClick={() => window.open(`/stores/${store.username}`, '_blank')}
-                      className="bg-white/20 text-white px-4 py-2 rounded-lg text-sm hover:bg-white/30 transition-colors font-medium"
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-700 transition-colors font-medium"
+                      title="Open new inbox-style review interface with keyboard shortcuts and bulk actions"
                     >
-                      Manage Store
+                      Review Audio Matches
                     </Button>
                     <Button
                       onClick={() => removeStore(store.id)}

@@ -125,7 +125,7 @@ export const StoreList: React.FC<StoreListProps> = ({
                     {store.inventory_count.toLocaleString()} items
                   </Badge>
                   <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-200">
-                    ⭐ {store.rating.toFixed(1)}
+                    ⭐ {parseFloat(store.rating).toFixed(1)}
                   </Badge>
                 </div>
                 

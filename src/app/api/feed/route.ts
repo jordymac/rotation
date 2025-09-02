@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withApiInstrumentation, getDevLimitFromEnv } from '@/lib/instrumentation';
-import { getInventoryForStore } from '@/server/inventory';
-import { getTrackMatchesForRelease } from '@/lib/db';
+import { getInventoryForStoreSupabase } from '@/server/inventory-supabase';
+import { supabaseTrackMatches } from '@/lib/db-supabase';
 
 interface FeedRelease {
   id: number;
@@ -41,8 +41,8 @@ async function handleFeed(
   logger.info(`Getting feed data for store ${storeId} - cursor: ${cursor}, limit: ${limit}`);
   tracker.start('fetch_inventory');
 
-  // Get releases from shared inventory logic
-  const inventoryData = await getInventoryForStore(storeId, {
+  // Get releases from Supabase-based inventory logic
+  const inventoryData = await getInventoryForStoreSupabase(storeId, {
     revalidate: false,
     developmentLimit: devLimit,
     logger,
@@ -63,12 +63,30 @@ async function handleFeed(
   
   logger.info(`Found ${paginatedReleases.length} releases, fetching audio matches...`);
 
-  // Skip audio matches temporarily to avoid database timeout issues
-  // TODO: Re-enable once connection pooling is stable
-  const enhancedReleases = paginatedReleases.map(release => ({
-    ...release,
-    audioMatches: []
-  }));
+  // Get audio matches using Supabase client (batch query)
+  const releaseIds = paginatedReleases.map(r => r.id);
+  const allMatches = await Promise.allSettled(
+    releaseIds.map(id => supabaseTrackMatches.getForRelease(id))
+  );
+
+  const enhancedReleases = paginatedReleases.map((release, index) => {
+    const matchResult = allMatches[index];
+    const matches = matchResult.status === 'fulfilled' ? matchResult.value : [];
+    
+    const audioMatches = matches
+      .filter(match => match.approved)
+      .map(match => ({
+        trackIndex: match.track_index,
+        platform: match.platform,
+        url: match.match_url,
+        confidence: match.confidence
+      }));
+
+    return {
+      ...release,
+      audioMatches
+    };
+  });
 
   tracker.end('enhance_audio_matches');
 

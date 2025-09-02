@@ -1,121 +1,75 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
-
 # 🎛️ Rotation
 
-**Rotation** is a scrollable vinyl discovery tool for DJs and record collectors — built on Discogs data, curated vibes, and audio previews.
+**A vinyl discovery platform that makes crate digging feel like scrolling through your favorite app.**
 
----
+Rotation transforms the way DJs, record collectors, and music lovers discover vinyl. Instead of browsing static catalog listings, users scroll through an interactive feed of records with embedded audio previews, curated by record stores and selectors worldwide.
 
-## 🧠 Purpose
+## What is Rotation?
 
-Make digging fun and useful again.
+Rotation is like **Instagram for vinyl records** — a visual, audio-rich discovery platform that brings the excitement of crate digging to your screen. Record stores can showcase their inventory as curated feeds, while music lovers can discover new releases and rare finds with instant audio previews.
 
-Instead of static Discogs listings, Rotation turns record collections into an interactive scroll feed with embedded audio previews and light curation — designed for selectors, store staff, and anyone crate-digging online.
+### For Record Collectors & DJs
+- 🎵 **Instant Audio Previews** — Listen before you buy with embedded tracks
+- 📱 **Swipe-Style Discovery** — Scroll through records like your favorite social feed  
+- 🏪 **Store-Curated Feeds** — Browse inventory from record stores worldwide
+- 🎯 **Smart Matching** — Advanced audio matching connects vinyl to digital previews
 
----
+### For Record Stores
+- 📈 **Showcase Your Inventory** — Turn your catalog into an engaging, browsable feed
+- 🎛️ **Easy Management** — Upload inventory from Discogs with one click
+- 🎵 **Automated Audio Matching** — System finds audio previews for your records automatically
+- 🌍 **Global Reach** — Connect with vinyl lovers beyond your local area
 
-## 🏗️ MVP Features
+## ✨ How It Works
 
-- [x] Built with Next.js (App Router) with TypeScript
-- [x] Store management system with Discogs API integration
-- [x] Scrollable feed UI with vinyl records from store inventory
-- [x] Advanced audio matching with YouTube/Discogs embedded videos (in development)
-- [x] PostgreSQL database with Redis caching layer
-- [x] Admin interface for record store management
-- [x] Atomic design component architecture
-- [x] Real-time audio match processing and approval system
-- [ ] Buy links and price comparison
-- [ ] Public staff feeds and selector pages
+1. **Record stores connect their Discogs inventory** to create curated feeds
+2. **Smart audio matching** automatically finds previews for vinyl records
+3. **Users browse and discover** records through an intuitive scroll interface  
+4. **Direct purchase links** connect discovery to sales
 
----
+## 🎵 Audio Previews
 
-## 🎵 Audio Preview Status
+Rotation's intelligent audio matching system connects vinyl records to digital previews from multiple sources:
 
-**Current State**: Audio matching system is actively being developed and refined. The system successfully finds and caches audio matches from Discogs embedded videos and YouTube, but coverage isn't universal.
+- **Discogs embedded videos** (prioritized for accuracy)
+- **YouTube audio matching** with confidence scoring
+- **Planned**: Apple Music integration for comprehensive coverage
 
-**Known Limitations**:
-- Not every vinyl release has available audio previews
-- Some genres/eras have better coverage than others
-- Rare or obscure releases may lack digital audio sources
+*Note: Not every record has available audio previews. When previews aren't available, users can still discover and purchase records with clear messaging like "Listening only available in-store."*
 
-**User Experience**: Records without audio previews will display fallback messaging such as:
-- "Listening only available in-store"
-- "Purchase anyway - support the dig!"
-- Direct purchase links to support record discovery regardless
+## 🔜 What's Coming
 
-**Next Steps**: Apple Music API integration planned to significantly expand preview coverage across all genres and release years.
+- Enhanced discovery algorithms and personalization
+- Social features — follow stores, share finds, create wishlists
+- Mobile app for on-the-go discovery
+- Advanced curation tools for stores and selectors
+- Integration with streaming platforms for broader audio coverage
 
----
+## 🌐 Try It Out
 
-## 🔜 Coming Soon (Post-MVP)
+**Live Demo**: [rotation-sigma.vercel.app](https://rotation-sigma.vercel.app/)
 
-- Apple Music API integration for comprehensive audio preview coverage
-- Enhanced smart caching system for improved performance
-- Consumer-facing discovery features and wishlist functionality
-- Tagging suggestions (mood, set time, energy)
-- "For You" page based on past engagement
-- Multi-store management and analytics
-- Social features and sharing capabilities
+- Browse the [store directory](https://rotation-sigma.vercel.app/stores)
+- Experience the [vinyl discovery feed](https://rotation-sigma.vercel.app/feed)
+- See the [store management system](https://rotation-sigma.vercel.app/admin)
 
----
+## 🛠️ For Developers
 
-## 📂 Dev Setup
+Built with modern web technologies for performance and scalability:
 
+- **Frontend**: Next.js 15, React, TypeScript, Tailwind CSS
+- **Backend**: REST APIs, PostgreSQL, Redis caching
+- **Integrations**: Discogs API, YouTube Data API
+- **Deployment**: Vercel with automated CI/CD
+
+### Quick Start
 ```bash
 npm install
 npm run dev
 ```
 
-**Live App**: [https://rotation-sigma.vercel.app/](https://rotation-sigma.vercel.app/)
+See `docs/` directory for detailed technical documentation and workflows.
 
-## 🗃️ Folder Structure
+---
 
-```
-src/
-  app/            → Next.js pages & API routes (App Router)
-    api/          → REST API endpoints for stores, releases, audio matching
-    admin/        → Admin dashboard for record store management
-    feed/         → Scrollable vinyl discovery feed
-  components/     → Atomic design component architecture
-    atoms/        → Basic building blocks (buttons, icons, typography)
-    molecules/    → Simple components (record cards, track items)
-    organisms/    → Complex components (feed grids, management panels)
-    templates/    → Page layout templates
-  lib/            → Core business logic and services
-    audio-matching → Advanced audio matching with ML confidence scoring
-    db/           → Database services and PostgreSQL integration
-    redis.ts      → Redis caching layer for performance
-  types/          → TypeScript definitions
-```
-
-## 🎯 Key Pages
-
-- **[Feed](https://rotation-sigma.vercel.app/feed)** - Scrollable vinyl discovery with audio previews
-- **[Admin](https://rotation-sigma.vercel.app/admin)** - Store management and audio match approval  
-- **[Stores](https://rotation-sigma.vercel.app/stores)** - Browse record store inventory
-
-## 🧱 Tech Stack
-
-**Core Framework**
-- Next.js 15 (App Router) with TypeScript
-- Tailwind CSS 4 for styling
-- Atomic design component architecture
-
-**APIs & Data**
-- Discogs API for vinyl data and marketplace integration
-- YouTube Data API for audio matching and previews
-- PostgreSQL (Supabase) for data persistence
-- Redis (Upstash) for caching layer
-
-**Audio Matching (In Development)**
-- Enhanced string similarity with Levenshtein distance
-- Mix-aware terminology normalization (radio ≠ dub ≠ remix)
-- Confidence scoring and auto-approval system
-- Discogs embedded video prioritization
-- **Current limitation**: Not every record has available videos/previews
-- Fallback messaging: "Listening only available in-store" or "Purchase anyway"
-- **Planned**: Apple Music API integration for broader preview coverage
-
-**Deployment**
-- Vercel for hosting and CI/CD
-- Environment-based configuration
+**Questions or want to get involved?** Check out the issues tab or reach out — we're always looking for contributors passionate about music discovery and vinyl culture.

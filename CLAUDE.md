@@ -31,16 +31,84 @@ The development server runs at https://rotation-sigma.vercel.app/.
 
 This is a Next.js 15 application using the App Router pattern with TypeScript and Tailwind CSS, following atomic design principles.
 
-### Key Directories
+### Key Directories & Component Structure
+
+#### Core Application Structure
 - `src/app/` - Next.js pages and API routes (App Router)
-- `src/components/` - UI components following atomic design
-  - `atoms/` - Basic building blocks (Button, Icons, etc.)
-  - `molecules/` - Simple components (ActionButtons, RecordCard, TrackListItem, etc.)
-  - `organisms/` - Complex components (AudioMatchingModal, RecordTable, StoreManagement)
-  - `templates/` - Page layout templates
-- `src/lib/` - Core business logic and services
-- `src/hooks/` - React hooks for shared functionality
-- `src/types/` - TypeScript type definitions
+  - `admin/` - Admin interface pages (store management, review)
+  - `api/` - API endpoints organized by feature
+  - `auth/` - Authentication pages
+  - `feed/` - Consumer feed interface
+  - `stores/` - Store browsing and individual store pages
+- `src/middleware.ts` - Request middleware for auth/routing
+- `src/server/` - Server-side utilities and services
+
+#### UI Components (Atomic Design)
+- `src/components/ui/` - Base UI primitives (button, card, dialog, etc.)
+- `src/components/atoms/` - Smallest reusable components
+  - `ConfidenceIndicator.tsx` - Audio match confidence visualization
+  - `Icons.tsx` - Icon components
+  - `MetricState.tsx` - Metric display states
+  - `PlayButton.tsx` - Audio playback control
+  - `TrackStatus.tsx` - Track processing status indicator
+  - `Typography.tsx` - Text styling components
+- `src/components/molecules/` - Compound components combining atoms
+  - `ActionButtons.tsx` - Action button groups
+  - `AlbumArtwork.tsx` - Album cover display with fallbacks
+  - `AudioMatchCandidate.tsx` - Individual match candidate display
+  - `RecordCard.tsx` - Main record display component
+  - `TrackListItem.tsx` - Individual track in lists
+  - `YouTubePreview.tsx` - Embedded YouTube player
+- `src/components/organisms/` - Complex feature components
+  - **Admin Components**:
+    - `AdminQueuePane.tsx` - Processing queue management
+    - `AdminRecordPane.tsx` - Record detail admin interface
+    - `AdminTrackInspector.tsx` - Track-level inspection
+    - `AdminTracksPane.tsx` - Track listing and management
+  - **Core Features**:
+    - `FeedGrid.tsx` - Main feed display grid
+    - `FeedWindow.tsx` - Feed container with scroll handling
+    - `RecordTable.tsx` - Tabular record display
+    - `StoreList.tsx` - Store directory listing
+    - `StoreManagement.tsx` - Store admin interface
+- `src/components/templates/` - Full page templates
+  - `AdminReviewTemplate.tsx` - Admin review interface layout
+  - `AdminTemplate.tsx` - General admin page layout
+  - `FeedTemplate.tsx` - Consumer feed page layout
+  - `HomeTemplate.tsx` - Landing page layout
+  - `PageLayout.tsx` - Base page wrapper
+  - `StoresTemplate.tsx` - Store directory layout
+
+#### API Route Organization
+- `api/admin/` - Administrative endpoints
+  - `releases/[id]/` - Release-specific admin actions
+  - `stores/[id]/` - Store management endpoints
+  - `review/` - Content review workflow
+- `api/auth/` - Authentication endpoints
+- `api/feed/` - Consumer feed data
+- `api/storefront/` - Store browsing endpoints
+- `api/user/` - User profile and preferences
+
+#### Core Services & Logic
+- `src/lib/` - Core business logic
+  - `audio-match-orchestrator.ts` - Audio matching workflow controller
+  - `audio-matching-engine.ts` - Core matching algorithms
+  - `db.ts` & `db-services.ts` - Database connections and queries
+  - `discogs-service.ts` - Discogs API integration
+  - `redis.ts` - Caching layer
+  - `analytics.ts` - Usage tracking
+- `src/hooks/` - Reusable React logic
+  - `useAudioMatch.ts` - Audio matching state management
+  - `useStoreMetrics.ts` - Store statistics
+  - `usePreloadQueue.ts` & `useTwoStageLoading.ts` - Performance optimization
+- `src/types/` - TypeScript definitions
+  - `database.ts` - Database schema types
+  - `admin-review.ts` - Admin workflow types
+  - `user.ts` - User data structures
+- `src/utils/` - Utility functions
+  - `discogs.ts` - Discogs data helpers
+  - `featuring.ts` - Artist name parsing
+  - `perfProfile.ts` - Performance monitoring
 
 ### Current Implementation Status
 
@@ -67,7 +135,7 @@ This is a Next.js 15 application using the App Router pattern with TypeScript an
 
 **API Endpoints**
 - `/api/admin/releases/[id]/audio-match` - Enhanced audio matching
-- `/api/stores/[storeId]/inventory` - Store inventory management
+- `/api/storefront/[storeId]/inventory` - Store inventory management
 - `/api/admin/setup` - Database health checks
 - `/api/admin/migrate` - Database table creation
 
@@ -118,19 +186,39 @@ This is a Next.js 15 application using the App Router pattern with TypeScript an
 - Clerk for authentication (configured)
 
 **Audio Matching Technology**
+- **AudioMatchingEngine**: Mix-aware matching with dance music intelligence
+- **AudioMatchOrchestrator**: Caching, persistence, and workflow management
 - Enhanced string similarity with Levenshtein distance
-- Mix-aware terminology normalization
-- Confidence scoring and classification
+- Confidence scoring and classification  
 - Strict incompatibility rules for dance music mixes
 
 ### Environment Configuration
 
 Required environment variables in `.env.local`:
+
+**Core API Keys:**
 - `DISCOGS_USER_TOKEN` - Discogs API authentication
+- `DISCOGS_CONSUMER_KEY` - Discogs OAuth consumer key
+- `DISCOGS_CONSUMER_SECRET` - Discogs OAuth consumer secret
+
+**YouTube API (⚠️ SECURITY ISSUE):**
 - `NEXT_PUBLIC_YOUTUBE_API_KEY` - YouTube Data API key
-- `POSTGRES_URL_NON_POOLING` - PostgreSQL connection string
+- **WARNING**: Currently exposed to browsers via NEXT_PUBLIC prefix
+- **TODO**: Move to server-side `YOUTUBE_API_KEY` for security
+
+**Database & Cache:**
+- `POSTGRES_URL_NON_POOLING` - PostgreSQL connection string (primary)
+- `POSTGRES_URL` - PostgreSQL connection string (fallback)  
+- `DATABASE_URL` - PostgreSQL connection string (fallback)
 - `UPSTASH_REDIS_REST_URL` - Redis cache URL
-- Clerk authentication keys (if using auth)
+- `UPSTASH_REDIS_REST_TOKEN` - Redis cache authentication
+
+**Development:**
+- `FEED_DEV_LIMIT` - Development API call limits
+- `NODE_ENV` - Environment detection (development/production)
+
+**Authentication (if enabled):**
+- Clerk authentication keys
 
 ### Development Notes
 
@@ -148,7 +236,7 @@ The application is currently optimized for record store staff workflow:
 - Mix-aware matching prevents cross-assignment (radio ≠ dub ≠ remix)
 - Auto-approves high-confidence matches for immediate use
 
-**Inventory Management Strategy (See INVENTORY_MANAGEMENT.md)**
+**Inventory Management Strategy (See docs/workflows/inventory-management.md)**
 Current system makes real-time Discogs API calls on every load (inefficient).
 
 **Planned Improvement:** Smart caching system where:
@@ -168,6 +256,60 @@ Current system makes real-time Discogs API calls on every load (inefficient).
 - SoundCloud integration disabled (can be re-enabled)
 
 **Next Priority**
-1. **Implement smart caching system** (INVENTORY_MANAGEMENT.md)
+1. **Implement smart caching system** (docs/workflows/inventory-management.md)
 2. **Background processing queue** for new releases
 3. **Performance monitoring** and cache hit rate analytics
+
+## Development Workflow and Documentation Policy
+
+**MANDATORY PRE-WORK REQUIREMENT**: Before working on any feature or component, you MUST:
+
+1. **Identify the feature area** you're working on (store management, audio matching, feed, admin, etc.)
+2. **Check the Documentation Index** below to find relevant workflow documentation
+3. **Read the appropriate workflow docs** BEFORE making any changes
+4. **Update documentation** if your changes modify existing workflows
+
+**Feature-to-Documentation Mapping**:
+- **Admin features** → Read: admin-audio-matching.md, admin-inbox-review.md, admin-store-management.md
+- **Store/Inventory work** → Read: inventory-management.md, store-browsing.md, admin-store-management.md
+- **Feed/Consumer features** → Read: unified-feed-experience.md, store-browsing.md
+- **Audio matching** → Read: admin-audio-matching.md, admin-inbox-review.md
+- **Component work** → Read: docs/NAMING.md + relevant workflow docs
+- **API changes** → Read: docs/api/ + relevant workflow docs
+
+**Documentation Requirements**:
+For every major component or workflow you work on, you MUST either:
+
+1. **Check existing documentation** in `docs/` directory and update it if changes were made
+2. **Create workflow documentation** if none exists for a major component/feature
+
+**When to create/update documentation**:
+- Creating new major components (organisms, templates, API routes)
+- Modifying existing workflows that affect user experience  
+- Performance optimizations or architectural changes
+- Adding new features or endpoints
+
+**Documentation should include**:
+- Purpose and overview
+- Step-by-step workflow/usage
+- API endpoints and data flow
+- Performance considerations  
+- Error handling and troubleshooting
+
+**Location**: All workflow docs go in `docs/workflows/` or `docs/components/` - NOT in root directory.
+
+**Quick Reference**: See `docs/README.md` for full documentation standards and directory structure.
+
+### Documentation Index
+- **Workflows**: `docs/workflows/` - Feature and process documentation
+  - [Admin Audio Matching](docs/workflows/admin-audio-matching.md) - Audio matching workflow for administrators
+  - [Admin Inbox Review](docs/workflows/admin-inbox-review.md) - Admin review process for pending matches
+  - [Admin Store Management](docs/workflows/admin-store-management.md) - Store administration and management
+  - [Background Processing Automation](docs/workflows/background-processing-automation.md) - Hybrid processing system
+  - [Database Schema](docs/workflows/database-schema.md) - Complete database architecture and roadmap
+  - [Inventory Management](docs/workflows/inventory-management.md) - Smart caching architecture
+  - [Store Browsing](docs/workflows/store-browsing.md) - Optimized store directory system
+  - [Unified Feed Experience](docs/workflows/unified-feed-experience.md) - Consumer feed and discovery
+- **Components**: `docs/components/` - Component-specific documentation
+- **API**: `docs/api/` - Endpoint documentation and examples
+- **Standards**: `docs/NAMING.md` - Naming conventions and code standards

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DiscogsRelease } from '@/utils/discogs';
-import { RecordCard } from '@/components/molecules';
+import { RecordCard, FeedCardSkeleton } from '@/components/molecules';
 import { useAudioMatch } from '@/hooks/useAudioMatch';
 import { FeedFilterBar } from './FeedFilterBar';
 import { RecordCarousel } from './RecordCarousel';
@@ -11,12 +11,15 @@ import { ChevronUpIcon, ChevronDownIcon, EyeIcon, ShoppingCartIcon } from '@/com
 
 interface FeedGridProps {
   releases: DiscogsRelease[];
+  totalReleases?: number; // Total count for display (not windowed count)
   storeInfo?: {
     id: string;
     username: string;
   };
   layout?: 'mobile' | 'desktop';
   className?: string;
+  isLoadingLight?: boolean;
+  hasFullData?: (releaseId: number) => boolean;
 }
 
 interface FeedFilters {
@@ -31,9 +34,12 @@ interface FeedFilters {
 
 export const FeedGrid: React.FC<FeedGridProps> = ({
   releases,
+  totalReleases,
   storeInfo,
   layout = 'desktop',
-  className = ''
+  className = '',
+  isLoadingLight = false,
+  hasFullData = () => true
 }) => {
   // Navigation state
   const [currentReleaseIndex, setCurrentReleaseIndex] = useState(0);
@@ -96,6 +102,14 @@ export const FeedGrid: React.FC<FeedGridProps> = ({
   });
 
   const currentRelease = filteredReleases[Math.min(currentReleaseIndex, filteredReleases.length - 1)];
+  
+  // Debug logging
+  console.log('🎵 FeedGrid debug:', {
+    totalReleases: releases.length,
+    filteredReleases: filteredReleases.length,
+    currentReleaseIndex,
+    currentRelease: currentRelease?.title || 'No release'
+  });
   
   // Global audio matching for current track
   const currentTrackTitle = currentRelease?.tracks?.[currentTrackIndex]?.title || currentRelease?.title;
@@ -239,6 +253,7 @@ export const FeedGrid: React.FC<FeedGridProps> = ({
     return (
       <RecordCarousel
         releases={filteredReleases}
+        totalReleases={totalReleases}
         currentReleaseIndex={currentReleaseIndex}
         currentTrackIndex={currentTrackIndex}
         onReleaseChange={setCurrentReleaseIndex}
@@ -261,6 +276,8 @@ export const FeedGrid: React.FC<FeedGridProps> = ({
         onClearFilters={clearFilters}
         storeInfo={storeInfo}
         className={className}
+        isLoadingLight={isLoadingLight}
+        hasFullData={hasFullData}
       />
     );
   }
@@ -309,13 +326,10 @@ export const FeedGrid: React.FC<FeedGridProps> = ({
       
       {/* Center Column: Record Display */}
       <div className="flex-1 flex flex-col items-center justify-center relative">
-        <div className="text-center mb-4">
-          <div className="text-white/60 text-sm">
-            {currentReleaseIndex + 1} / {filteredReleases.length}
-          </div>
-        </div>
         
-        {currentRelease && (
+        {isLoadingLight && releases.length === 0 ? (
+          <FeedCardSkeleton viewMode="grid" />
+        ) : currentRelease ? (
           <RecordCard
             release={currentRelease}
             viewMode="grid"
@@ -327,7 +341,12 @@ export const FeedGrid: React.FC<FeedGridProps> = ({
             isScrolling={isScrolling}
             youtubeVideoId={youtubeVideoId}
             audioLoading={audioLoading}
+            index={currentReleaseIndex}
+            currentIndex={currentReleaseIndex + 1}
+            totalCount={totalReleases || filteredReleases.length}
           />
+        ) : (
+          <FeedCardSkeleton viewMode="grid" />
         )}
         
         {/* Navigation Chevrons */}
@@ -344,7 +363,14 @@ export const FeedGrid: React.FC<FeedGridProps> = ({
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => handleScroll('down')}
+            onClick={() => {
+              console.log('🔽 Down button clicked:', {
+                currentIndex: currentReleaseIndex,
+                totalFiltered: filteredReleases.length,
+                canGoDown: currentReleaseIndex < filteredReleases.length - 1
+              });
+              handleScroll('down');
+            }}
             disabled={currentReleaseIndex >= filteredReleases.length - 1 || isScrolling}
             className="w-12 h-12 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/20 disabled:opacity-30"
           >
@@ -390,7 +416,11 @@ export const FeedGrid: React.FC<FeedGridProps> = ({
             className="w-full bg-green-600 hover:bg-green-700 text-white"
           >
             <a
-              href={`https://www.discogs.com${currentRelease?.uri}`}
+              href={
+                currentRelease?.listingUri 
+                  ? currentRelease.listingUri
+                  : `https://www.discogs.com${currentRelease?.uri}`
+              }
               target="_blank"
               rel="noopener noreferrer"
             >
