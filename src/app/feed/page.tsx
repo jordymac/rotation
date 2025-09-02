@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { FeedTemplate, LoadingTemplate } from '@/components/templates';
+import { FeedTemplate } from '@/components/templates';
+import { FeedCardSkeleton916 } from '@/components/molecules/FeedCardSkeleton916';
 import { DiscogsRelease } from '@/utils/discogs';
 import { useTwoStageLoading } from '@/hooks/useTwoStageLoading';
 import { usePreloadQueue } from '@/hooks/usePreloadQueue';
@@ -218,10 +219,9 @@ function FeedContent() {
     }
   }, [currentReleaseIndex, releases, loadFullData, hasFullData, preloadImage, useFallback]);
 
-  // Show loading state during initial light data load or fallback
+  // Show skeleton during initial light data load or fallback
   if ((isLoadingLight || isLoadingFallback) && releases.length === 0) {
-    const message = useFallback ? "Loading feed (fallback mode)..." : "Loading your feed...";
-    return <LoadingTemplate message={message} />;
+    return <FeedCardSkeleton916 count={3} />;
   }
 
   // Debug logging for active mode
@@ -310,7 +310,7 @@ function FeedContent() {
 
 export default function FeedPage() {
   return (
-    <Suspense fallback={<LoadingTemplate message="Loading your feed..." />}>
+    <Suspense fallback={<FeedCardSkeleton916 count={3} />}>
       <FeedContent />
     </Suspense>
   );
