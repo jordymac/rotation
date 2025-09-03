@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { PageLayout } from './PageLayout';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface HomeTemplateProps {
-  onEnterFeed: () => void;
   onBrowseStores: () => void;
   onGoToAdmin?: () => void;
 }
@@ -13,6 +13,8 @@ export const HomeTemplate: React.FC<HomeTemplateProps> = ({
   onBrowseStores,
   onGoToAdmin
 }) => {
+  const [showWaitlistDialog, setShowWaitlistDialog] = useState(false);
+  const [showAuthDialog, setShowAuthDialog] = useState(false);
   return (
     <PageLayout showFooter={false}>
       <div className="min-h-screen bg-white">
@@ -39,7 +41,7 @@ export const HomeTemplate: React.FC<HomeTemplateProps> = ({
                 </button>
               )}
               <button
-                onClick={() => window.location.href = '/auth'}
+                onClick={() => setShowAuthDialog(true)}
                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
               >
                 Sign In
@@ -60,13 +62,13 @@ export const HomeTemplate: React.FC<HomeTemplateProps> = ({
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               <button
-                onClick={() => window.location.href = '/auth'}
+                onClick={() => setShowWaitlistDialog(true)}
                 className="bg-gray-900 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-800 transition-colors"
               >
                 Join the Beta
               </button>
               <button
-                onClick={onEnterFeed}
+                onClick={onBrowseStores}
                 className="border-2 border-gray-900 text-gray-900 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-900 hover:text-white transition-colors"
               >
                 See It in Action
@@ -260,7 +262,7 @@ export const HomeTemplate: React.FC<HomeTemplateProps> = ({
             <div className="max-w-4xl mx-auto px-4 text-center">
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <button
-                  onClick={() => window.location.href = '/auth'}
+                  onClick={() => setShowWaitlistDialog(true)}
                   className="bg-gray-900 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-800 transition-colors"
                 >
                   Request Access
@@ -278,6 +280,28 @@ export const HomeTemplate: React.FC<HomeTemplateProps> = ({
           </div>
         </div>
       </div>
+      
+      <Dialog open={showWaitlistDialog} onOpenChange={setShowWaitlistDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Waitlist Opening Soon</DialogTitle>
+            <DialogDescription>
+              We're putting the finishing touches on Rotation. Check back soon!
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={showAuthDialog} onOpenChange={setShowAuthDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discogs Authentication Coming Soon</DialogTitle>
+            <DialogDescription>
+              We're working on Discogs integration. Stay tuned for updates!
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </PageLayout>
   );
 };
