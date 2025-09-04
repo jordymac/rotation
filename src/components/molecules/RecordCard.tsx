@@ -310,6 +310,7 @@ export const RecordCard: React.FC<RecordCardProps> = ({
       <div className="relative w-full bg-black" style={{ aspectRatio: '16 / 9' }}>
         {currentVideoId ? (
           <AutoplayVideoPlayer
+            key={`${release.id}-${currentTrackIndex}`}
             videoId={currentVideoId}
             title={`${release.artist} - ${release.title}`}
           />

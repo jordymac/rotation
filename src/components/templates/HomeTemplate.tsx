@@ -85,16 +85,13 @@ export const HomeTemplate: React.FC<HomeTemplateProps> = ({
             
             <div className="space-y-6 mb-12">
               <div className="bg-gray-50 rounded-lg p-6">
-                <p className="text-lg text-gray-700">No audio previews</p>
+                <p className="text-lg text-gray-700">Customers leave your site without listening</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-6">
-                <p className="text-lg text-gray-700">Every listing looks the same</p>
+                <p className="text-lg text-gray-700">No way to audition records means lower conversion rates</p>
               </div>
               <div className="bg-gray-50 rounded-lg p-6">
-                <p className="text-lg text-gray-700">Customers have to click, scroll, and guess</p>
-              </div>
-              <div className="bg-gray-50 rounded-lg p-6">
-                <p className="text-lg text-gray-700">YouTube embeds are chaotic and out of order</p>
+                <p className="text-lg text-gray-700">5-click listening process kills purchase intent</p>
               </div>
             </div>
             
@@ -110,7 +107,7 @@ export const HomeTemplate: React.FC<HomeTemplateProps> = ({
                 A playable record wall. On mobile. In minutes.
               </h2>
               <p className="text-xl text-gray-600 text-center mb-8">
-                Rotation pulls from your Discogs inventory, finds playable audio, and presents it in a visual, swipe-first feed.
+                Embed playable previews directly on your product pages. Increase time-on-site and conversion rates. Works with your existing Discogs inventory and website.
               </p>
             </div>
           </div>
