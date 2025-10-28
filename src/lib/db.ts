@@ -143,7 +143,9 @@ export async function runMigrations(): Promise<void> {
       '009_processing_queue_unique_constraint.sql',
       '010_processing_queue_status_index.sql',
       '011_create_admin_stores.sql',
-      '012_create_batch_ingest_rpc.sql'
+      '012_create_batch_ingest_rpc.sql',
+      '013_enable_rls.sql',
+      '014_fix_function_search_path.sql'
     ];
     
     for (const migrationFile of migrations) {

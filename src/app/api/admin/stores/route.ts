@@ -1,28 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
 import { supabaseStores } from '@/lib/db-supabase';
 
 export async function GET() {
-  // Temporarily bypass auth for development
-  // const { userId } = await auth();
-  // 
-  // if (!userId) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
-
-  // For now, anyone can access admin. In production, add admin role check
+  // TODO: Add authentication when implementing Discogs OAuth (Phase 2)
+  // Will protect admin routes for store owners only
   const stores = await supabaseStores.getAll();
   
   return NextResponse.json({ stores });
 }
 
 export async function POST(request: NextRequest) {
-  // Temporarily bypass auth for development
-  // const { userId } = await auth();
-  // 
-  // if (!userId) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
+  // TODO: Add authentication when implementing Discogs OAuth (Phase 2)
 
   try {
     const { username } = await request.json();

@@ -16,7 +16,6 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.26.0",
     "@heroicons/react": "^2.2.0",
     "@radix-ui/react-avatar": "^1.1.10",
     "@radix-ui/react-dialog": "^1.1.14",
