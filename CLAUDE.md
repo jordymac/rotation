@@ -2,6 +2,25 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## ⚠️ IMPORTANT: Activity Logging
+
+**MANDATORY REQUIREMENT**: All significant changes MUST be logged in [`ACTIVITY.md`](ACTIVITY.md).
+
+### When to Update ACTIVITY.md
+- ✅ Database migrations or schema changes
+- ✅ Security fixes or policy updates
+- ✅ Dependency additions/removals
+- ✅ Feature implementations or refactors
+- ✅ Breaking changes or architecture decisions
+- ✅ Multi-file changes affecting core functionality
+
+### How to Update ACTIVITY.md
+1. **At the START of work**: Add new session entry with context
+2. **During work**: Update with files created/modified
+3. **At the END of work**: Mark status and add any blockers
+
+See [`ACTIVITY.md`](ACTIVITY.md) for format and examples.
+
 ## Project Overview
 
 **Rotation** is a vinyl discovery tool for DJs and record collectors built on Next.js. The app focuses on store management with sophisticated audio matching capabilities, designed for record store staff and vinyl selectors who need to verify and manage audio previews for their inventory.
@@ -153,8 +172,10 @@ This is a Next.js 15 application using the App Router pattern with TypeScript an
 - Audio player integration needs refinement
 
 **Authentication & User Management**
-- Clerk integration configured but not fully implemented
-- User roles and permissions need completion
+- ⚠️ **NO AUTHENTICATION SYSTEM** - Clerk has been removed
+- All API routes are currently unauthenticated
+- Admin routes accessible without authentication (temporary)
+- See [`ACTIVITY.md`](ACTIVITY.md) session `CLERK-REMOVAL-2025-10-28-002` for details
 
 #### ❌ TODO (Future Enhancements)
 
@@ -183,7 +204,6 @@ This is a Next.js 15 application using the App Router pattern with TypeScript an
 **External APIs**
 - Discogs API for vinyl data, audio matching and marketplace integration
 - YouTube Data API for audio matching and previews when Discogs listing does not include Videos
-- Clerk for authentication (configured)
 
 **Audio Matching Technology**
 - **AudioMatchingEngine**: Mix-aware matching with dance music intelligence
@@ -216,9 +236,6 @@ Required environment variables in `.env.local`:
 **Development:**
 - `FEED_DEV_LIMIT` - Development API call limits
 - `NODE_ENV` - Environment detection (development/production)
-
-**Authentication (if enabled):**
-- Clerk authentication keys
 
 ### Development Notes
 

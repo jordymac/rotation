@@ -435,3 +435,183 @@ The database layer integrates with:
 - Full-text search integration
 - ML feature storage
 - Graph database for recommendations
+
+## Security
+
+### Row Level Security (RLS)
+
+**Implementation Date**: 2025-10-28
+**Migration**: `013_enable_rls.sql`
+**Status**: ✅ Enabled on all 44 tables
+
+The database uses PostgreSQL Row Level Security to enforce access control at the database level, providing defense-in-depth even if application logic is bypassed.
+
+#### Security Model
+
+**Three-Tier Access Control**:
+
+1. **Service Role (Backend API)**
+   - Used by: Next.js API routes with `SUPABASE_SERVICE_ROLE_KEY`
+   - Access Level: Full unrestricted access to all tables
+   - Security: Key never exposed to client, server-side only
+   - Use Cases: Admin operations, background jobs, data processing
+
+2. **Authenticated Users**
+   - Used by: Logged-in users via Clerk authentication
+   - Access Level: Read/write own data, read public content
+   - Security: JWT-based authentication with `auth.uid()` verification
+   - Use Cases: User profile management, favorites, collections
+
+3. **Anonymous Users**
+   - Used by: Public visitors without authentication
+   - Access Level: Read-only access to public content
+   - Security: No write permissions, limited to approved content
+   - Use Cases: Browsing stores, viewing releases, music discovery
+
+#### Policy Summary by Layer
+
+**Identity Layer (4 tables)**:
+- `users`: Users read own data, service role manages all
+- `stores`: Public can read active stores only
+- `store_managers`: Managers read own assignments
+- `discogs_tokens`: ⚠️ **SERVICE ROLE ONLY** - contains OAuth secrets
+
+**Content Layer (4 tables)**:
+- `records`, `tracks`, `store_inventory`: Public read access
+- Service role manages all content creation/updates
+
+**Matching Layer (6 tables)**:
+- `audio_matches`: Public can read verified matches only
+- `audio_match_history`, `match_candidates`: Service role only
+- `audio_quality_metrics`, `metadata_cache`: Service role only
+
+**User Features Layer (8 tables)**:
+- Users have full control over their own data
+- `favorites`, `user_collections`: Users manage own items
+- `play_history`: Read-only for users, service role logs plays
+- `feedback`: Users read own feedback
+
+**Analytics Layer (9 tables)**:
+- All analytics tables are service role only
+- Contains sensitive metrics and user behavior data
+- No public or user access
+
+**Configuration Layer (9 tables)**:
+- `settings`: Public can read `is_public = true` settings only
+- All other config tables service role only
+- Protects API keys and internal configuration
+
+**Processing Layer (4 tables)**:
+- `releases`: Public can read releases with audio matches
+- `processing_queue`, `store_sync_log`: Service role only
+- `admin_stores`: Service role only
+
+#### Critical Security Tables
+
+Tables with heightened security requirements:
+
+1. **`discogs_tokens`** - OAuth credentials (service role only)
+2. **`users`** - User data with PII
+3. **`audit_logs`** - Security audit trail
+4. **`usage_metrics`** - User behavior tracking
+5. **`rate_limits`** - Security configuration
+
+#### Testing RLS Policies
+
+**Verify RLS Status**:
+```sql
+SELECT schemaname, tablename, rowsecurity
+FROM pg_tables
+WHERE schemaname = 'public'
+ORDER BY tablename;
+```
+
+**List All Policies**:
+```sql
+SELECT schemaname, tablename, policyname, permissive, roles, cmd
+FROM pg_policies
+WHERE schemaname = 'public'
+ORDER BY tablename, policyname;
+```
+
+### Function Security
+
+**Implementation Date**: 2025-10-28
+**Migration**: `014_fix_function_search_path.sql`
+**Status**: ✅ Fixed 12 functions
+
+All database functions now explicitly set `search_path = public, pg_temp` to prevent schema injection attacks.
+
+**Protected Functions**:
+- Token encryption: `encrypt_token`, `decrypt_token`
+- Cleanup: `cleanup_expired_candidates`, `cleanup_old_analytics_data`
+- Triggers: `update_updated_at_column`, `log_audio_match_change`, etc.
+- Analytics: `aggregate_daily_metrics`
+- Store sync: `update_sync_stats`, `get_cached_releases`
+
+### Encryption
+
+**Token Encryption**:
+- OAuth tokens encrypted at rest using pgcrypto
+- Functions: `encrypt_token()`, `decrypt_token()`
+- ⚠️ Update encryption key in production
+
+**SSL/TLS**:
+- All database connections use SSL
+- Certificate verification enabled for Supabase
+
+### Audit Logging
+
+**Change Tracking**:
+- `audit_logs` table tracks all sensitive operations
+- `audio_match_history` logs match verification changes
+- `feature_flag_history` tracks feature flag modifications
+- All via database triggers (automatic)
+
+### Rate Limiting
+
+**API Protection**:
+- `rate_limits` table tracks usage per user/IP
+- Configured per endpoint
+- Prevents abuse and DDoS attacks
+
+### Security Best Practices
+
+**DO**:
+- ✅ Always use service role key server-side only
+- ✅ Test RLS policies before production deployment
+- ✅ Enable RLS on all new tables immediately
+- ✅ Regular security audits (monthly linter, quarterly full review)
+- ✅ Keep encryption keys secure and rotate regularly
+- ✅ Monitor audit logs for suspicious activity
+
+**DON'T**:
+- ❌ Never expose service role key to client-side code
+- ❌ Never use `USING (true)` for user-facing policies
+- ❌ Never skip RLS when creating tables
+- ❌ Never trust client-provided user IDs
+- ❌ Never store sensitive data without encryption
+- ❌ Never disable RLS "temporarily" in production
+
+### Security Documentation
+
+For detailed security information, see:
+- **[Security Audit Log](../security/SECURITY_AUDIT_LOG.md)** - All security activities and incidents
+- **[RLS Policy Documentation](../security/RLS_POLICY_DOCUMENTATION.md)** - Complete policy reference
+- **Migration Files**: `013_enable_rls.sql`, `014_fix_function_search_path.sql`
+
+### Known Security Issues
+
+**Resolved**:
+- ✅ RLS disabled on 44 tables (fixed 2025-10-28)
+- ✅ Function search_path mutable on 12 functions (fixed 2025-10-28)
+
+**Pending**:
+- ⚠️ YouTube API key exposed client-side (`NEXT_PUBLIC_YOUTUBE_API_KEY`) - should be server-side only
+- ⚠️ Postgres version 17.4.1.064 has available patches - upgrade recommended
+
+**Future Improvements**:
+- Implement API rate limiting in application layer
+- Add real-time intrusion detection
+- Enable database query logging in production
+- Implement automated security testing in CI/CD

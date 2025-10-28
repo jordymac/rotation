@@ -1,39 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@clerk/nextjs/server';
-import { userDiscogsUsernames } from '@/lib/storage';
 
 export async function GET() {
-  const { userId } = await auth();
-  
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const discogsUsername = userDiscogsUsernames.get(userId) || '';
-  
-  return NextResponse.json({ discogsUsername });
+  // TODO: Add authentication when implementing Discogs OAuth (Phase 2)
+  return NextResponse.json({
+    error: 'User profile features require authentication. Coming in Phase 2 with Discogs OAuth.'
+  }, { status: 501 });
 }
 
 export async function POST(request: NextRequest) {
-  const { userId } = await auth();
-  
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  // TODO: Add authentication when implementing Discogs OAuth (Phase 2)
+  return NextResponse.json({
+    error: 'User profile features require authentication. Coming in Phase 2 with Discogs OAuth.'
+  }, { status: 501 });
+
+  /*
+  Future implementation with Discogs OAuth - code preserved for Phase 2:
+
+  const { userId } = await getDiscogsAuth();
+  const { discogsUsername } = await request.json();
+
+  if (typeof discogsUsername !== 'string') {
+    return NextResponse.json({ error: 'Invalid username' }, { status: 400 });
   }
 
-  try {
-    const { discogsUsername } = await request.json();
-    
-    if (typeof discogsUsername !== 'string') {
-      return NextResponse.json({ error: 'Invalid username' }, { status: 400 });
-    }
+  // Save to database
+  await saveUserDiscogsUsername(userId, discogsUsername.trim());
 
-    // Save the username (in production, save to database)
-    userDiscogsUsernames.set(userId, discogsUsername.trim());
-    
-    return NextResponse.json({ success: true });
-  } catch (error) {
-    console.error('Error saving discogs username:', error);
-    return NextResponse.json({ error: 'Failed to save username' }, { status: 500 });
-  }
+  return NextResponse.json({ success: true });
+  */
 }
